@@ -156,39 +156,27 @@ LANGUAGE=en_US
 EOF
     success "Langue KDE configurée : English (US) — clavier AZERTY conservé"
 
-    # ── Thème SDDM Breeze + fond Breeze Dark + Langue EN ─
-    info "Application du thème SDDM Breeze + fond Breeze Dark + langue EN..."
-    sudo mkdir -p /etc/sddm.conf.d
-
-    # Thème breeze
-    sudo bash -c 'cat > /etc/sddm.conf.d/theme.conf << EOF
-[Theme]
-Current=breeze
+    # ── Langue SDDM via drop-in systemd ──────────────
+    info "Langue SDDM → English (US) via systemd drop-in..."
+    sudo mkdir -p /etc/systemd/system/sddm.service.d
+    sudo bash -c 'cat > /etc/systemd/system/sddm.service.d/locale.conf << EOF
+[Service]
+Environment=LANG=en_US.UTF-8
 EOF'
+    sudo systemctl daemon-reload
+    success "Langue SDDM configurée via systemd drop-in"
 
-    # Langue SDDM en anglais
-    sudo bash -c 'cat > /etc/sddm.conf.d/locale.conf << EOF
-[General]
-Lang=en_US.UTF-8
-EOF'
-
-    # Fond d'écran Breeze Dark — cherche la variante dark en priorité
-    # Fond Breeze Dark — cherche variante dark puis fallback standard
-    WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images_dark \
-        -type f 2>/dev/null | sort -V | tail -1)
-    if [[ -z "$WALLPAPER" ]]; then
-        WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images \
-            -type f 2>/dev/null | sort -V | tail -1)
-    fi
-
-    if [[ -n "$WALLPAPER" ]]; then
+    # ── Fond d'écran SDDM ────────────────────────────
+    info "Application du fond d'écran SDDM (Breeze Dark)..."
+    WALLPAPER="/usr/share/wallpapers/Next/contents/images_dark/5120x2880.png"
+    if sudo test -f "$WALLPAPER"; then
         sudo bash -c "cat > /usr/share/sddm/themes/breeze/theme.conf.user << EOF
 [General]
 background=$WALLPAPER
 EOF"
-        success "Fond SDDM Breeze Dark appliqué : $WALLPAPER"
+        success "Fond SDDM appliqué : $WALLPAPER"
     else
-        warn "Fond Breeze Dark introuvable — fond SDDM par défaut conservé."
+        warn "Wallpaper introuvable : $WALLPAPER — fond SDDM par défaut conservé."
     fi
 
 elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
