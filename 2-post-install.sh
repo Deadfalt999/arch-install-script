@@ -173,12 +173,12 @@ Lang=en_US.UTF-8
 EOF'
 
     # Fond d'écran Breeze Dark — cherche la variante dark en priorité
+    # Fond Breeze Dark — cherche variante dark puis fallback standard
     WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images_dark \
-        \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | sort -V | tail -1)
-
+        -type f 2>/dev/null | sort -V | tail -1)
     if [[ -z "$WALLPAPER" ]]; then
         WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images \
-            \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | sort -V | tail -1)
+            -type f 2>/dev/null | sort -V | tail -1)
     fi
 
     if [[ -n "$WALLPAPER" ]]; then
