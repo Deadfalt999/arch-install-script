@@ -15,7 +15,7 @@ trap 's=$?; echo -e "\n❌ Erreur ligne $LINENO : $BASH_COMMAND\n"; exit $s' ERR
 # ══════════════════════════════════════════════════════════
 DISK="/dev/nvme0n1"        # Vérifie avec : fdisk -l
 HOSTNAME="mon-laptop"      # Nom de ta machine sur le réseau
-USERNAME="tonprenom"       # Nom d'utilisateur (minuscules, sans espace)
+USERNAME="Admin"           # Nom d'utilisateur (minuscules, sans espace)
 TIMEZONE="Europe/Paris"
 LOCALE="fr_FR.UTF-8"
 KEYMAP="fr"
@@ -248,6 +248,24 @@ info "Activation de sudo pour le groupe wheel..."
 sed -i 's/^# \(%wheel ALL=(ALL:ALL) ALL\)/\1/' /etc/sudoers
 success "Sudo configuré"
 
+# ── Clavier (SDDM + KDE) ─────────────────────────
+banner "CONFIGURATION CLAVIER"
+info "Clavier français pour SDDM..."
+localectl set-x11-keymap fr
+success "Clavier X11 configuré (fr)"
+
+info "Clavier français pour KDE Plasma (Wayland)..."
+mkdir -p /home/${USERNAME}/.config
+cat > /home/${USERNAME}/.config/kxkbrc << EOF
+[Layout]
+DisplayNames=
+LayoutList=fr
+Model=pc105
+VariantList=
+EOF
+chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.config
+success "Clavier KDE configuré (fr)"
+
 # ── Multilib ─────────────────────────────────────
 banner "MULTILIB (32-bit)"
 info "Activation du dépôt multilib (nécessaire pour Steam et lib32)..."
@@ -322,16 +340,12 @@ pacman -S --noconfirm \
     steam
 success "Lutris et Steam installés"
 
-info "XFCE4 — sessions X11 et Wayland (expérimental)..."
-# xorg-server  : session X11 pour XFCE4 ET KDE Plasma X11
-# labwc        : compositeur Wayland requis pour la session XFCE4 Wayland (EXPÉRIMENTAL)
-# Note         : KDE Plasma X11 est automatiquement disponible dans SDDM dès que
-#                xorg-server est installé (déjà inclus dans plasma-meta)
+info "XFCE4 — session X11..."
+# labwc retiré : XFCE4 Wayland expérimental supprimé, X11 uniquement
+# Plasma reste en Wayland, XFCE4 en X11
 pacman -S --noconfirm \
-    xfce4 xfce4-goodies \
-    xorg-server xorg-xinit \
-    labwc
-success "XFCE4 installé (X11 stable + Wayland expérimental via labwc)"
+    xfce4 xfce4-goodies
+success "XFCE4 installé (X11)"
 
 # ── switcheroo-control ───────────────────────────
 banner "SWITCHEROO-CONTROL"
