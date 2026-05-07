@@ -156,11 +156,11 @@ LANGUAGE=en_US
 EOF
     success "Langue KDE configurée : English (US) — clavier AZERTY conservé"
 
-    # ── Thème SDDM Breeze Dark + Langue EN ───────────
-    info "Application du thème SDDM Breeze + dark mode + langue EN..."
+    # ── Thème SDDM Breeze + fond Breeze Dark + Langue EN ─
+    info "Application du thème SDDM Breeze + fond Breeze Dark + langue EN..."
     sudo mkdir -p /etc/sddm.conf.d
 
-    # Thème breeze + langue anglaise
+    # Thème breeze
     sudo bash -c 'cat > /etc/sddm.conf.d/theme.conf << EOF
 [Theme]
 Current=breeze
@@ -171,8 +171,26 @@ EOF'
 [General]
 Lang=en_US.UTF-8
 EOF'
-    success "SDDM Breeze + langue EN appliqués"
-    warn "Le thème SDDM Breeze reste en mode jour — le dark mode SDDM nécessite un thème tiers non inclus."
+
+    # Fond d'écran Breeze Dark — cherche la variante dark en priorité
+    WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images_dark \
+        -name "*.png" -o -name "*.jpg" 2>/dev/null | sort -V | tail -1)
+
+    # Fallback sur la variante standard si dark introuvable
+    if [[ -z "$WALLPAPER" ]]; then
+        WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images \
+            -name "*.png" -o -name "*.jpg" 2>/dev/null | sort -V | tail -1)
+    fi
+
+    if [[ -n "$WALLPAPER" ]]; then
+        sudo bash -c "cat > /usr/share/sddm/themes/breeze/theme.conf.user << EOF
+[General]
+background=$WALLPAPER
+EOF"
+        success "Fond SDDM Breeze Dark appliqué : $WALLPAPER"
+    else
+        warn "Fond Breeze Dark introuvable — fond SDDM par défaut conservé."
+    fi
 
 elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
     info "Session XFCE détectée"
