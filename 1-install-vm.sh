@@ -249,12 +249,13 @@ success "Multilib activé"
 # ── Drivers GPU VMware ───────────────────────────
 banner "DRIVERS GPU VMWARE"
 info "Installation des drivers graphiques VMware..."
-# xf86-video-vmware : driver 2D VMware (SVGA)
-# mesa              : rendu OpenGL logiciel
-# xorg-server       : serveur X11 (requis pour KDE X11 et XFCE)
+# xf86-video-vmware supprimé des dépôts Arch — le module kernel vmwgfx gère l'affichage
+# xf86-input-vmmouse : driver souris VMware
+# mesa               : rendu OpenGL
+# xorg-server        : serveur X11 (requis pour KDE X11 et XFCE)
 pacman -S --noconfirm \
     mesa \
-    xf86-video-vmware \
+    xf86-input-vmmouse \
     xorg-server xorg-xinit \
     vulkan-icd-loader
 success "Drivers VMware installés"
