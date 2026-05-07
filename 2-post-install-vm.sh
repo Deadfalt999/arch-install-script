@@ -148,17 +148,8 @@ EOF'
 [General]
 Lang=en_US.UTF-8
 EOF'
-
-    # Dark mode via theme.conf.user (override du thème breeze)
-    # Fond sombre + couleurs de texte claires
-    sudo bash -c 'cat > /usr/share/sddm/themes/breeze/theme.conf.user << EOF
-[General]
-background=#1b2430
-basicTextColor=#eff0f1
-highlightTextColor=#eff0f1
-highlightColor=#3daee9
-EOF'
-    success "SDDM Breeze Dark + langue EN appliqués"
+    success "SDDM Breeze + langue EN appliqués"
+    warn "Le thème SDDM Breeze reste en mode jour — le dark mode SDDM nécessite un thème tiers non inclus."
 
 elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
     info "Session XFCE détectée"
@@ -201,12 +192,4 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 # ── Déconnexion ──────────────────────────────────
-echo -e "${YELLOW}Les changements de thème et de langue nécessitent une déconnexion.${NC}"
-echo -n "Veux-tu te déconnecter maintenant ? (yes/no) : "
-read LOGOUT_CONFIRM
-if [[ "$LOGOUT_CONFIRM" == "yes" ]]; then
-    info "Déconnexion en cours..."
-    loginctl terminate-user "$USER"
-else
-    warn "Pense à te déconnecter manuellement pour appliquer les changements."
-fi
+echo -e "${YELLOW}⚠️  Déconnecte-toi et reconnecte-toi pour appliquer le thème et la langue.${NC}"
