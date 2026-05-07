@@ -259,7 +259,7 @@ success "Multilib activé"
 banner "DRIVERS GPU AMD + NVIDIA"
 info "Installation des drivers AMD (iGPU)..."
 pacman -S --noconfirm \
-    mesa vulkan-radeon libva-mesa-driver mesa-vdpau xf86-video-amdgpu
+    mesa vulkan-radeon libva-mesa-driver xf86-video-amdgpu
 success "Drivers AMD installés"
 
 info "Installation des drivers NVIDIA propriétaires (4060)..."
