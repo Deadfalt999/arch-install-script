@@ -102,18 +102,14 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]]; then
     # ── Thème Breeze Sombre ──────────────────────────
     info "Application du thème Breeze Sombre..."
     mkdir -p ~/.config
-
-    # Schéma de couleurs
-    kwriteconfig5 --file kdeglobals --group "General" --key "ColorScheme" "BreezeDark"
-    kwriteconfig5 --file kdeglobals --group "KDE" --key "LookAndFeelPackage" "org.kde.breezedark.desktop"
-
-    # Look and Feel global
-    plasma-apply-lookandfeel --apply org.kde.breezedark.desktop 2>/dev/null || \
-    cat >> ~/.config/kdeglobals << EOF
+    # Écriture directe dans kdeglobals (kwriteconfig5 non disponible sans paquet extra)
+    cat > ~/.config/kdeglobals << EOF
 [General]
 ColorScheme=BreezeDark
+
 [KDE]
 LookAndFeelPackage=org.kde.breezedark.desktop
+widgetStyle=Breeze
 EOF
     success "Thème Breeze Sombre appliqué"
 
