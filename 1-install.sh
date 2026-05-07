@@ -257,6 +257,8 @@ success "Multilib activé"
 
 # ── Drivers GPU ──────────────────────────────────
 banner "DRIVERS GPU AMD + NVIDIA"
+# Forcer resynchronisation complète des bases de données
+pacman -Syy --noconfirm
 info "Installation des drivers AMD (iGPU)..."
 pacman -S --noconfirm \
     mesa vulkan-radeon libva-mesa-driver xf86-video-amdgpu
