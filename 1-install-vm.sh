@@ -162,6 +162,7 @@ info "Installation des paquets de base..."
 pacstrap -K /mnt \
     base base-devel \
     linux linux-headers linux-firmware \
+    linux-lts linux-lts-headers \
     networkmanager \
     vim nano \
     git wget curl \
@@ -346,6 +347,10 @@ rm /mnt/chroot-setup.sh
 # ══════════════════════════════════════════════════════════
 banner "DÉMONTAGE"
 info "Démontage des partitions..."
+sync
+# Tuer les processus résiduels éventuels dans /mnt
+fuser -km /mnt 2>/dev/null || true
+sleep 1
 umount -R /mnt
 success "Partitions démontées"
 
