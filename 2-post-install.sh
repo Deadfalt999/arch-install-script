@@ -156,14 +156,31 @@ LANGUAGE=en_US
 EOF
     success "Langue KDE configurée : English (US) — clavier AZERTY conservé"
 
-    # ── Thème SDDM Breeze ────────────────────────────
-    info "Application du thème SDDM Breeze..."
+    # ── Thème SDDM Breeze Dark + Langue EN ───────────
+    info "Application du thème SDDM Breeze + dark mode + langue EN..."
     sudo mkdir -p /etc/sddm.conf.d
+
+    # Thème breeze + langue anglaise
     sudo bash -c 'cat > /etc/sddm.conf.d/theme.conf << EOF
 [Theme]
 Current=breeze
 EOF'
-    success "Thème SDDM Breeze appliqué"
+
+    # Langue SDDM en anglais
+    sudo bash -c 'cat > /etc/sddm.conf.d/locale.conf << EOF
+[General]
+Lang=en_US.UTF-8
+EOF'
+
+    # Dark mode via theme.conf.user (override du thème breeze)
+    sudo bash -c 'cat > /usr/share/sddm/themes/breeze/theme.conf.user << EOF
+[General]
+background=#1b2430
+basicTextColor=#eff0f1
+highlightTextColor=#eff0f1
+highlightColor=#3daee9
+EOF'
+    success "SDDM Breeze Dark + langue EN appliqués"
 
 elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
     info "Session XFCE détectée"
@@ -210,3 +227,14 @@ echo "║    Propriétés du jeu → Options de lancement :               ║"
 echo "║    prime-run %command%                                      ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
+
+# ── Déconnexion ──────────────────────────────────
+echo -e "${YELLOW}Les changements de thème et de langue nécessitent une déconnexion.${NC}"
+echo -n "Veux-tu te déconnecter maintenant ? (yes/no) : "
+read LOGOUT_CONFIRM
+if [[ "$LOGOUT_CONFIRM" == "yes" ]]; then
+    info "Déconnexion en cours..."
+    loginctl terminate-user "$USER"
+else
+    warn "Pense à te déconnecter manuellement pour appliquer les changements."
+fi
