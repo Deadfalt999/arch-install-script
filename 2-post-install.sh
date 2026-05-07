@@ -73,6 +73,7 @@ else
     sudo ln -sf /opt/waterfox/waterfox /usr/local/bin/waterfox
 
     info "Création du raccourci bureau (KDE)..."
+    mkdir -p ~/.local/share/applications
     cat > ~/.local/share/applications/waterfox.desktop << EOF
 [Desktop Entry]
 Name=Waterfox
