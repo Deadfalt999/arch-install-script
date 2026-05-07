@@ -382,7 +382,8 @@ info "Multimédia & utilitaires..."
 pacman -S --noconfirm \
     vlc \
     okular \
-    gnome-disk-utility
+    gnome-disk-utility \
+    yakuake
 success "Multimédia & utilitaires installés"
 
 info "Gaming (Lutris + Steam)..."

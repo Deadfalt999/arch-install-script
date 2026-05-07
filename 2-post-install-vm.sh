@@ -92,6 +92,83 @@ EOF
 fi
 
 # ══════════════════════════════════════════════════════════
+#  CONFIGURATION SESSION (KDE ou XFCE)
+# ══════════════════════════════════════════════════════════
+banner "CONFIGURATION SESSION — ${XDG_CURRENT_DESKTOP:-inconnue}"
+
+if [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]]; then
+    info "Session KDE détectée"
+
+    # ── Thème Breeze Sombre ──────────────────────────
+    info "Application du thème Breeze Sombre..."
+    mkdir -p ~/.config
+
+    # Schéma de couleurs
+    kwriteconfig5 --file kdeglobals --group "General" --key "ColorScheme" "BreezeDark"
+    kwriteconfig5 --file kdeglobals --group "KDE" --key "LookAndFeelPackage" "org.kde.breezedark.desktop"
+
+    # Look and Feel global
+    plasma-apply-lookandfeel --apply org.kde.breezedark.desktop 2>/dev/null || \
+    cat >> ~/.config/kdeglobals << EOF
+[General]
+ColorScheme=BreezeDark
+[KDE]
+LookAndFeelPackage=org.kde.breezedark.desktop
+EOF
+    success "Thème Breeze Sombre appliqué"
+
+    # ── Langue anglais US (clavier FR conservé) ──────
+    info "Langue KDE → English (US) — clavier FR conservé..."
+    mkdir -p ~/.config
+    cat > ~/.config/plasma-localerc << EOF
+[Formats]
+LANG=en_US.UTF-8
+LC_ADDRESS=en_US.UTF-8
+LC_MEASUREMENT=en_US.UTF-8
+LC_MONETARY=en_US.UTF-8
+LC_NAME=en_US.UTF-8
+LC_NUMERIC=en_US.UTF-8
+LC_PAPER=en_US.UTF-8
+LC_TELEPHONE=en_US.UTF-8
+LC_TIME=en_US.UTF-8
+
+[Translations]
+LANGUAGE=en_US
+EOF
+    success "Langue KDE configurée : English (US) — clavier AZERTY conservé"
+
+    # ── Thème SDDM Breeze ────────────────────────────
+    info "Application du thème SDDM Breeze..."
+    sudo mkdir -p /etc/sddm.conf.d
+    sudo bash -c 'cat > /etc/sddm.conf.d/theme.conf << EOF
+[Theme]
+Current=breeze
+EOF'
+    success "Thème SDDM Breeze appliqué"
+
+elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
+    info "Session XFCE détectée"
+
+    # ── Langue anglais US (clavier FR conservé) ──────
+    info "Langue XFCE → English (US) — clavier FR conservé..."
+    # ~/.xprofile est sourcé par XFCE au démarrage de session
+    # On retire toute ligne LANG/LC_ existante puis on ajoute les nouvelles
+    sed -i '/^export LANG=/d;/^export LC_/d;/^export LANGUAGE=/d' ~/.xprofile 2>/dev/null || true
+    cat >> ~/.xprofile << EOF
+
+# Langue English US — ajouté par 2-post-install
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US
+export LC_ALL=en_US.UTF-8
+EOF
+    success "Langue XFCE configurée : English (US) — clavier AZERTY conservé"
+
+else
+    warn "Session non reconnue (${XDG_CURRENT_DESKTOP:-non définie}) — configuration thème/langue ignorée."
+    warn "Lance ce script depuis une session KDE ou XFCE."
+fi
+
+# ══════════════════════════════════════════════════════════
 #  FIN
 # ══════════════════════════════════════════════════════════
 echo -e "\n${GREEN}${BOLD}"

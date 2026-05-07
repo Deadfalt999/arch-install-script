@@ -365,8 +365,15 @@ info "Multimédia & utilitaires..."
 pacman -S --noconfirm \
     vlc \
     okular \
-    gnome-disk-utility
+    gnome-disk-utility \
+    yakuake
 success "Multimédia & utilitaires installés"
+
+info "Gaming (Lutris + Steam)..."
+pacman -S --noconfirm \
+    lutris \
+    steam
+success "Lutris et Steam installés"
 
 info "XFCE4 — session X11..."
 # labwc retiré : XFCE4 Wayland expérimental supprimé, X11 uniquement
