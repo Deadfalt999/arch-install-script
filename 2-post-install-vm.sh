@@ -151,12 +151,11 @@ EOF'
 
     # Fond d'écran Breeze Dark — cherche la variante dark en priorité
     WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images_dark \
-        -name "*.png" -o -name "*.jpg" 2>/dev/null | sort -V | tail -1)
+        \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | sort -V | tail -1)
 
-    # Fallback sur la variante standard si dark introuvable
     if [[ -z "$WALLPAPER" ]]; then
         WALLPAPER=$(find /usr/share/wallpapers/Breeze/contents/images \
-            -name "*.png" -o -name "*.jpg" 2>/dev/null | sort -V | tail -1)
+            \( -name "*.png" -o -name "*.jpg" \) 2>/dev/null | sort -V | tail -1)
     fi
 
     if [[ -n "$WALLPAPER" ]]; then
