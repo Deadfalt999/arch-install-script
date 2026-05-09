@@ -117,6 +117,76 @@ info "Mode GPU actuel :"
 envycontrol --query
 
 # ══════════════════════════════════════════════════════════
+#  ÉMULATEURS & OUTILS DE COMPATIBILITÉ
+# ══════════════════════════════════════════════════════════
+banner "ÉMULATEURS & COMPATIBILITÉ WINDOWS"
+
+# ── Wine Staging & outils (pacman) ───────────────
+info "Installation de Wine Staging..."
+sudo pacman -S --noconfirm \
+    wine-staging \
+    wine-gecko \
+    wine-mono \
+    winetricks
+success "Wine Staging installé"
+
+# ── Émulateurs (pacman) ──────────────────────────
+info "Installation des émulateurs (dépôts officiels)..."
+sudo pacman -S --noconfirm \
+    retroarch \
+    dolphin-emu \
+    pcsx2 \
+    ppsspp \
+    mgba \
+    desmume
+success "Émulateurs pacman installés"
+
+# ── ProtonPlus + émulateurs (AUR) ───────────────
+info "Installation de ProtonPlus (gestionnaire Proton/Wine)..."
+yay -S --noconfirm protonplus
+success "ProtonPlus installé"
+
+info "Installation des émulateurs AUR..."
+# ryujinx-canary = fork ryubing (Nintendo Switch)
+# cemu-bin       = Wii U
+# duckstation    = PlayStation 1
+yay -S --noconfirm \
+    ryujinx-canary \
+    cemu-bin \
+    duckstation
+success "Émulateurs AUR installés"
+
+# ── BGB — Game Boy (binaire Windows via Wine) ────
+info "Installation de BGB (émulateur Game Boy, binaire Windows via Wine)..."
+BGB_DIR="$HOME/.local/share/bgb"
+if [[ -f "$BGB_DIR/bgb.exe" ]]; then
+    success "BGB déjà installé, skip."
+else
+    mkdir -p "$BGB_DIR"
+    mkdir -p "$HOME/.local/bin"
+    curl -fsSL --progress-bar -o /tmp/bgb.zip "https://bgb.bircd.org/bgb.zip"
+    unzip -o /tmp/bgb.zip -d "$BGB_DIR"
+    rm /tmp/bgb.zip
+    cat > "$HOME/.local/bin/bgb" << EOF
+#!/bin/bash
+wine "$BGB_DIR/bgb.exe" "\$@"
+EOF
+    chmod +x "$HOME/.local/bin/bgb"
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/bgb.desktop" << EOF
+[Desktop Entry]
+Name=BGB
+GenericName=Game Boy Emulator
+Exec=wine $BGB_DIR/bgb.exe
+Icon=mgba
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+EOF
+    success "BGB installé dans $BGB_DIR — lancé via Wine"
+fi
+
+# ══════════════════════════════════════════════════════════
 #  CONFIGURATION SESSION (KDE ou XFCE)
 # ══════════════════════════════════════════════════════════
 banner "CONFIGURATION SESSION — ${XDG_CURRENT_DESKTOP:-inconnue}"
