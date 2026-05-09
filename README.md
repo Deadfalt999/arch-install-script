@@ -25,8 +25,10 @@ Each configuration comes with two scripts:
 | `2-post-install.sh` | Laptop | yay · Waterfox · envycontrol hybrid mode · KDE theming |
 | `1-install-vm.sh` | VMware Workstation | VMware SVGA drivers · open-vm-tools |
 | `2-post-install-vm.sh` | VMware Workstation | yay · Waterfox · KDE theming |
-| `1-install-desktop.sh` | Desktop | AMD CPU + AMD GPU · no NVIDIA · no Optimus |
-| `2-post-install-desktop.sh` | Desktop | yay · Waterfox · KDE theming |
+| `1-install-desktop.sh` | Desktop AMD | AMD CPU + AMD GPU · no NVIDIA · no Optimus |
+| `2-post-install-desktop.sh` | Desktop AMD | yay · Waterfox · KDE theming |
+| `1-install-desktop-nvidia.sh` | Desktop NVIDIA | AMD CPU + NVIDIA GPU only · no iGPU · no Optimus |
+| `2-post-install-desktop-nvidia.sh` | Desktop NVIDIA | yay · Waterfox · KDE theming |
 
 ---
 
@@ -89,6 +91,20 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 
 ---
 
+### Desktop (AMD CPU + NVIDIA GPU)
+
+**Script 1** — from the live USB:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/main/1-install-desktop-nvidia.sh -o 1-install-desktop-nvidia.sh && bash 1-install-desktop-nvidia.sh
+```
+
+**Script 2** — after first boot, inside KDE:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/main/2-post-install-desktop-nvidia.sh -o 2-post-install-desktop-nvidia.sh && bash 2-post-install-desktop-nvidia.sh
+```
+
+---
+
 ## 📦 What Gets Installed
 
 ### Base system (all configurations)
@@ -119,8 +135,9 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 ### GPU drivers
 | Configuration | Drivers |
 |---|---|
-| Laptop | `mesa` + `vulkan-radeon` (AMD) · `nvidia` + `nvidia-utils` (NVIDIA) |
-| Desktop | `mesa` + `vulkan-radeon` + `lib32-vulkan-radeon` |
+| Laptop | `mesa` + `vulkan-radeon` (AMD iGPU) · `nvidia` + `nvidia-utils` (NVIDIA) |
+| Desktop AMD | `mesa` + `vulkan-radeon` + `lib32-vulkan-radeon` |
+| Desktop NVIDIA | `nvidia` + `nvidia-utils` + `lib32-nvidia-utils` · NVIDIA DRM modeset |
 | VMware | `mesa` + `xf86-input-vmmouse` |
 
 ---
@@ -142,9 +159,9 @@ Script 2 detects the current session automatically and applies:
 
 ---
 
-## 🔧 GPU Management (Laptop only)
+## 🔧 GPU Management
 
-The laptop uses **Optimus hybrid mode** via `envycontrol` + `switcheroo-control`:
+### Laptop only — Optimus hybrid via `envycontrol` + `switcheroo-control`
 
 | Command | Effect |
 |---|---|
@@ -156,6 +173,10 @@ The laptop uses **Optimus hybrid mode** via `envycontrol` + `switcheroo-control`
 In KDE, right-click any app → **"Launch using dedicated GPU"** to run it on the NVIDIA.
 
 For Steam: **Game properties → Launch options** → `prime-run %command%`
+
+### Desktop NVIDIA — single GPU, no switching needed
+
+The NVIDIA proprietary driver runs at all times with `nvidia_drm modeset=1` enabled for Wayland compatibility. No additional configuration required.
 
 ---
 
