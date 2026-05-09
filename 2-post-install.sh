@@ -116,12 +116,88 @@ success "Mode hybride activé"
 info "Mode GPU actuel :"
 envycontrol --query
 
+
+# ══════════════════════════════════════════════════════════
+#  GEAR LEVER (GESTIONNAIRE D'APPIMAGE)
+# ══════════════════════════════════════════════════════════
+banner "GEAR LEVER — GESTIONNAIRE D'APPIMAGE"
+if command -v gear-lever &>/dev/null; then
+    success "Gear Lever déjà installé, skip."
+else
+    info "Installation de Gear Lever (AUR)..."
+    yay -S --noconfirm gear-lever
+    success "Gear Lever installé"
+fi
+
 # ══════════════════════════════════════════════════════════
 #  ÉMULATEURS & OUTILS DE COMPATIBILITÉ
 # ══════════════════════════════════════════════════════════
 banner "ÉMULATEURS & COMPATIBILITÉ WINDOWS"
 
-# ── Wine Staging & outils (pacman) ───────────────
+APPDIR="$HOME/Applications"
+mkdir -p "$APPDIR"
+
+# ── Fonction de téléchargement AppImage depuis GitHub ────
+download_appimage() {
+    local repo="$1"
+    local pattern="$2"
+    local name="$3"
+    info "Téléchargement de $name (AppImage)..."
+    if [[ -f "$APPDIR/$name" ]]; then
+        success "$name déjà présent, skip."
+        return
+    fi
+    local url
+    url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*'"$pattern"'[^"]*"' \
+        | grep -v 'zsync\|debug\|symbols' \
+        | head -1 \
+        | cut -d'"' -f4)
+    if [[ -z "$url" ]]; then
+        warn "URL introuvable pour $name — passage en mode pacman."
+        return 1
+    fi
+    curl -fsSL --progress-bar -o "$APPDIR/$name" "$url"
+    chmod +x "$APPDIR/$name"
+    success "$name installé dans $APPDIR/"
+}
+
+# ── AppImages — téléchargées depuis GitHub ───────────────
+# RetroArch (nightly officiel)
+info "Téléchargement de RetroArch (AppImage nightly)..."
+if [[ -f "$APPDIR/RetroArch.AppImage" ]]; then
+    success "RetroArch déjà présent, skip."
+else
+    curl -fsSL --progress-bar \
+        -o "$APPDIR/RetroArch.AppImage" \
+        "https://github.com/hizzlekizzle/RetroArch-AppImage/releases/download/Linux_LTS_Nightlies/RetroArch-Linux-x86_64-Nightly.AppImage"
+    chmod +x "$APPDIR/RetroArch.AppImage"
+    success "RetroArch AppImage installé"
+fi
+
+download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
+download_appimage "mgba-emu/mgba"         "AppImage"   "mGBA.AppImage"         || sudo pacman -S --noconfirm mgba
+download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || sudo pacman -S --noconfirm
+download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation
+
+# ── Pacman — émulateurs sans AppImage fiable ─────────────
+info "Installation des émulateurs pacman (sans AppImage officielle)..."
+sudo pacman -S --noconfirm \
+    dolphin-emu \
+    ppsspp \
+    desmume
+success "Émulateurs pacman installés (dolphin, ppsspp, desmume)"
+
+# ── AUR — ryujinx-canary (binaire, pas AppImage) ─────────
+info "Installation de Ryujinx Canary (fork Ryubing) depuis l'AUR..."
+if command -v ryujinx &>/dev/null; then
+    success "Ryujinx déjà installé, skip."
+else
+    yay -S --noconfirm ryujinx-canary
+    success "Ryujinx Canary installé"
+fi
+
+# ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
 sudo pacman -S --noconfirm \
     wine-staging \
@@ -130,33 +206,16 @@ sudo pacman -S --noconfirm \
     winetricks
 success "Wine Staging installé"
 
-# ── Émulateurs (pacman) ──────────────────────────
-info "Installation des émulateurs (dépôts officiels)..."
-sudo pacman -S --noconfirm \
-    retroarch \
-    dolphin-emu \
-    pcsx2 \
-    ppsspp \
-    mgba \
-    desmume
-success "Émulateurs pacman installés"
-
-# ── ProtonPlus + émulateurs (AUR) ───────────────
+# ── ProtonPlus (AUR) ─────────────────────────────────────
 info "Installation de ProtonPlus (gestionnaire Proton/Wine)..."
-yay -S --noconfirm protonplus
-success "ProtonPlus installé"
+if command -v protonplus &>/dev/null; then
+    success "ProtonPlus déjà installé, skip."
+else
+    yay -S --noconfirm protonplus
+    success "ProtonPlus installé"
+fi
 
-info "Installation des émulateurs AUR..."
-# ryujinx-canary = fork ryubing (Nintendo Switch)
-# cemu-bin       = Wii U
-# duckstation    = PlayStation 1
-yay -S --noconfirm \
-    ryujinx-canary \
-    cemu-bin \
-    duckstation
-success "Émulateurs AUR installés"
-
-# ── BGB — Game Boy (binaire Windows via Wine) ────
+# ── BGB — Game Boy (binaire Windows via Wine) ────────────
 info "Installation de BGB (émulateur Game Boy, binaire Windows via Wine)..."
 BGB_DIR="$HOME/.local/share/bgb"
 if [[ -f "$BGB_DIR/bgb.exe" ]]; then
@@ -186,7 +245,6 @@ EOF
     success "BGB installé dans $BGB_DIR — lancé via Wine"
 fi
 
-# ══════════════════════════════════════════════════════════
 #  CONFIGURATION SESSION (KDE ou XFCE)
 # ══════════════════════════════════════════════════════════
 banner "CONFIGURATION SESSION — ${XDG_CURRENT_DESKTOP:-inconnue}"
