@@ -22,13 +22,13 @@ Each configuration comes with two scripts:
 | Script | Target | Description |
 |---|---|---|
 | `1-install.sh` | Laptop | AMD iGPU + NVIDIA 4060 · Optimus hybrid · envycontrol |
-| `2-post-install.sh` | Laptop | yay · Waterfox · envycontrol hybrid mode · KDE theming |
+| `2-post-install.sh` | Laptop | yay · Waterfox · envycontrol · emulators · AppImages · Gear Lever · KDE theming |
 | `1-install-vm.sh` | VMware Workstation | VMware SVGA drivers · open-vm-tools |
-| `2-post-install-vm.sh` | VMware Workstation | yay · Waterfox · KDE theming |
+| `2-post-install-vm.sh` | VMware Workstation | yay · Waterfox · emulators · AppImages · Gear Lever · KDE theming |
 | `1-install-desktop.sh` | Desktop AMD | AMD CPU + AMD GPU · no NVIDIA · no Optimus |
-| `2-post-install-desktop.sh` | Desktop AMD | yay · Waterfox · KDE theming |
+| `2-post-install-desktop.sh` | Desktop AMD | yay · Waterfox · emulators · AppImages · Gear Lever · KDE theming |
 | `1-install-desktop-nvidia.sh` | Desktop NVIDIA | AMD CPU + NVIDIA GPU only · no iGPU · no Optimus |
-| `2-post-install-desktop-nvidia.sh` | Desktop NVIDIA | yay · Waterfox · KDE theming |
+| `2-post-install-desktop-nvidia.sh` | Desktop NVIDIA | yay · Waterfox · emulators · AppImages · Gear Lever · KDE theming |
 
 ---
 
@@ -129,8 +129,28 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 | Gnome Disk | pacman |
 | Yakuake | pacman |
 | Dolphin, Konsole, Kate | pacman |
+| wine-staging + gecko + mono + winetricks | pacman |
 | Waterfox | Official tarball (auto-latest) |
 | yay | AUR (compiled from source) |
+| ProtonPlus | AUR |
+| Gear Lever | AUR — AppImage manager |
+
+### Emulators (Script 2)
+
+| Emulator | System | Method | Location |
+|---|---|---|---|
+| RetroArch | Multi-system frontend | AppImage (nightly) | `~/Applications/` |
+| PCSX2 | PlayStation 2 | AppImage (latest) | `~/Applications/` |
+| mGBA | Game Boy / GBA | AppImage (latest) | `~/Applications/` |
+| Cemu | Wii U | AppImage (latest) | `~/Applications/` |
+| DuckStation | PlayStation 1 | AppImage (latest) | `~/Applications/` |
+| Dolphin | GameCube / Wii | pacman | system |
+| PPSSPP | PSP | pacman | system |
+| DeSmuME | Nintendo DS | pacman | system |
+| Ryujinx Canary | Nintendo Switch | AUR (ryujinx-canary) | system |
+| BGB | Game Boy (Windows) | `.exe` via Wine | `~/.local/share/bgb/` |
+
+> AppImages are downloaded automatically from their official GitHub releases and stored in `~/Applications/`. Gear Lever integrates them into the app menu — just drag and drop any AppImage onto it.
 
 ### GPU drivers
 | Configuration | Drivers |
