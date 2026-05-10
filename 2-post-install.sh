@@ -269,7 +269,32 @@ fi
 
 
 # ── AppImage — melonDS (Nintendo DS) — officielle ────────
-download_appimage "melonDS-emu/melonDS" "x86_64.AppImage" "melonDS.AppImage" || yay -S --noconfirm melonds-bin
+# melonDS — AppImage dans un zip sur les releases officielles
+if [[ -f "$APPDIR/melonDS.AppImage" ]]; then
+    success "melonDS déjà présent, skip."
+else
+    info "Téléchargement de melonDS (AppImage officielle dans zip)..."
+    MELON_URL=$(curl -fsSL "https://api.github.com/repos/melonDS-emu/melonDS/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*appimage[^"]*x86_64[^"]*\.zip"' \
+        | head -1 | cut -d'"' -f4)
+    if [[ -n "$MELON_URL" ]]; then
+        curl -fsSL --progress-bar -o /tmp/melonDS-appimage.zip "$MELON_URL"
+        unzip -o /tmp/melonDS-appimage.zip "*.AppImage" -d /tmp/melonds-extract/
+        MELON_APPIMAGE=$(find /tmp/melonds-extract -name "*.AppImage" | head -1)
+        if [[ -n "$MELON_APPIMAGE" ]]; then
+            cp "$MELON_APPIMAGE" "$APPDIR/melonDS.AppImage"
+            chmod +x "$APPDIR/melonDS.AppImage"
+            success "melonDS AppImage installé"
+        else
+            warn "AppImage introuvable dans le zip melonDS"
+        fi
+        rm -f /tmp/melonDS-appimage.zip
+        rm -rf /tmp/melonds-extract
+    else
+        warn "URL melonDS introuvable — fallback AUR..."
+        yay -S --noconfirm melonds-bin
+    fi
+fi
 
 # ── AppImage — PPSSPP (PSP) ───────────────────────────────
 download_appimage "hrydgard/ppsspp" "AppImage" "PPSSPP.AppImage" || sudo pacman -S --noconfirm ppsspp
@@ -342,7 +367,9 @@ if [[ -f "$DFU_DIR/DaggerfallUnity" ]]; then
     success "Daggerfall Unity déjà installé, skip."
 else
     DFU_URL=$(curl -fsSL "https://api.github.com/repos/Interkarma/daggerfall-unity/releases/latest" \
-        | grep -o '"browser_download_url": *"[^"]*Linux[^"]*\.zip"' \
+        | grep browser_download_url \
+        | grep -i linux \
+        | grep "\.zip" \
         | head -1 \
         | cut -d'"' -f4)
     if [[ -n "$DFU_URL" ]]; then
