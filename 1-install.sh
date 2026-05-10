@@ -282,6 +282,7 @@ Section "InputClass"
     MatchIsKeyboard "on"
     Option "XkbLayout" "fr"
     Option "XkbModel" "pc105"
+EndSection
 EOF
 success "Clavier SDDM configuré (fr)"
 
@@ -398,6 +399,11 @@ info "XFCE4 — session X11..."
 pacman -S --noconfirm \
     xfce4 xfce4-goodies
 success "XFCE4 installé (X11)"
+
+info "Installation de Cinnamon (X11)..."
+pacman -S --noconfirm \
+    cinnamon
+success "Cinnamon installé (X11)"
 
 # ── switcheroo-control ───────────────────────────
 banner "SWITCHEROO-CONTROL"
