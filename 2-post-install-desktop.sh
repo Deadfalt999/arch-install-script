@@ -615,12 +615,13 @@ EOF
 fi
 
 
-# ── VkQuake (Quake 1 — Vulkan) — compilé depuis source ──
+
 banner "VKQUAKE — COMPILATION DEPUIS SOURCE"
 
-VKQUAKE_BIN="$VKQUAKE_DIR/build/vkquake"
-
 _build_vkquake() {
+    local _VKDIR="$HOME/.local/share/vkquake-source"
+    local _VKBIN="$_VKDIR/build/vkquake"
+
     info "Installation des dépendances de compilation VkQuake..."
     sudo pacman -S --noconfirm \
         git meson ninja pkg-config gcc \
@@ -631,18 +632,16 @@ _build_vkquake() {
     success "Dépendances VkQuake installées"
 
     info "Clonage de VkQuake depuis GitHub..."
-    # Supprimer le dossier si existant d'une tentative précédente
-    [[ -d "$VKQUAKE_DIR" ]] && rm -rf "$VKQUAKE_DIR"
-    git clone https://github.com/Novum/vkQuake.git "$VKQUAKE_DIR" || {
+    [[ -d "$_VKDIR" ]] && rm -rf "$_VKDIR"
+    git clone https://github.com/Novum/vkQuake.git "$_VKDIR" || {
         warn "Clonage échoué — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         return 0
     }
 
-    # meson setup depuis la racine du repo
-    cd "$VKQUAKE_DIR"
+    cd "$_VKDIR"
 
-    info "Configuration Meson (depuis $VKQUAKE_DIR)..."
+    info "Configuration Meson (depuis $_VKDIR)..."
     meson setup build --buildtype=release || {
         warn "Meson échoué — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
@@ -659,14 +658,14 @@ _build_vkquake() {
     }
 
     mkdir -p "$HOME/.local/bin"
-    ln -sf "$VKQUAKE_BIN" "$HOME/.local/bin/vkquake"
+    ln -sf "$_VKBIN" "$HOME/.local/bin/vkquake"
 
     mkdir -p "$HOME/.local/share/applications"
     cat > "$HOME/.local/share/applications/vkquake.desktop" << EOF
 [Desktop Entry]
 Name=vkQuake
 GenericName=Quake (Vulkan)
-Exec=$VKQUAKE_BIN
+Exec=$_VKBIN
 Icon=quake
 Terminal=false
 Type=Application
@@ -677,12 +676,16 @@ EOF
     success "VkQuake compilé et installé depuis source (Vulkan)"
 }
 
-if [[ -f "$VKQUAKE_BIN" ]]; then
+if [[ -f "$HOME/.local/share/vkquake-source/build/vkquake" ]]; then
     success "VkQuake déjà compilé, skip."
 else
     _build_vkquake
 fi
 unset -f _build_vkquake
+
+
+
+
 
 
 
