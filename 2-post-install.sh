@@ -149,6 +149,13 @@ banner "ÉMULATEURS & COMPATIBILITÉ WINDOWS"
 
 APPDIR="$HOME/Applications"
 mkdir -p "$APPDIR"
+mkdir -p "$HOME/.local/share/applications"
+mkdir -p "$HOME/.local/share/icons/hicolor/256x256/apps"
+ICONDIR="$HOME/.local/share/icons/hicolor/256x256/apps"
+
+# ── FUSE2 — requis pour les AppImages ────────────────────
+info "Installation de fuse2 (requis pour les AppImages)..."
+sudo pacman -S --noconfirm fuse2 || true
 
 # ── Fonction de téléchargement AppImage depuis GitHub ────
 download_appimage() {
@@ -536,11 +543,32 @@ fi
 banner "RACCOURCIS KDE — MENU APPLICATIONS"
 info "Création des liens .desktop pour tous les AppImages..."
 mkdir -p "$HOME/.local/share/applications"
+ICONDIR="$HOME/.local/share/icons/hicolor/256x256/apps"
+mkdir -p "$ICONDIR"
+
+# Téléchargement des icônes
+_fetch_icon() {
+    local name="$1" url="$2"
+    [[ -f "$ICONDIR/$name.png" ]] && return
+    curl -fsSL --progress-bar -o "$ICONDIR/$name.png" "$url" 2>/dev/null || true
+}
+
+info "Téléchargement des icônes..."
+_fetch_icon "retroarch"      "https://raw.githubusercontent.com/libretro/retroarch-assets/master/pkg/osx/retroarch.png"
+_fetch_icon "mgba"           "https://raw.githubusercontent.com/mgba-emu/mgba/master/res/mgba-256.png"
+_fetch_icon "melonds"        "https://raw.githubusercontent.com/melonDS-emu/melonDS/master/res/melon_256x256.png"
+_fetch_icon "ryujinx"        "https://raw.githubusercontent.com/Ryubing/Canary/master/distribution/misc/Logo.png"
+_fetch_icon "ppsspp"         "https://raw.githubusercontent.com/hrydgard/ppsspp/master/icons/ppsspp.png"
+_fetch_icon "duckstation"    "https://raw.githubusercontent.com/stenzek/duckstation/master/src/duckstation-qt/resources/icons/duck.png"
+_fetch_icon "uzdoom"         "https://raw.githubusercontent.com/UZDoom/UZDoom/master/src/posix/sdl/icon.png"
+_fetch_icon "pcsx2"          "https://raw.githubusercontent.com/PCSX2/pcsx2/master/pcsx2/gui/Resources/AppIcon256.png"
+_fetch_icon "cemu"           "https://raw.githubusercontent.com/cemu-project/Cemu/main/src/resource/cemu.png"
 
 # Fonction utilitaire
 _make_desktop() {
     local name="$1" generic="$2" exec="$3" icon="$4" categories="${5:-Game;}"
-    cat > "$HOME/.local/share/applications/${name// /-}.desktop" << EOF
+    local file="$HOME/.local/share/applications/${name// /-}.desktop"
+    cat > "$file" << EOF
 [Desktop Entry]
 Name=$name
 GenericName=$generic
@@ -552,51 +580,43 @@ Categories=$categories
 EOF
 }
 
-# RetroArch
-[[ -f "$APPDIR/RetroArch.AppImage" ]] && \
-    _make_desktop "RetroArch" "Multi-system Emulator" "$APPDIR/RetroArch.AppImage" "retroarch"
+# AppImages
+[[ -f "$APPDIR/RetroArch.AppImage" ]]       && _make_desktop "RetroArch"          "Multi-system Emulator"       "$APPDIR/RetroArch.AppImage"       "$ICONDIR/retroarch.png"
+[[ -f "$APPDIR/mGBA.AppImage" ]]            && _make_desktop "mGBA"               "Game Boy / GBA Emulator"     "$APPDIR/mGBA.AppImage"            "$ICONDIR/mgba.png"
+[[ -f "$APPDIR/melonDS.AppImage" ]]         && _make_desktop "melonDS"            "Nintendo DS Emulator"        "$APPDIR/melonDS.AppImage"         "$ICONDIR/melonds.png"
+[[ -f "$APPDIR/Ryujinx.AppImage" ]]         && _make_desktop "Ryujinx Canary"     "Nintendo Switch Emulator"    "$APPDIR/Ryujinx.AppImage"         "$ICONDIR/ryujinx.png"
+[[ -f "$APPDIR/PPSSPP.AppImage" ]]          && _make_desktop "PPSSPP"             "PSP Emulator"                "$APPDIR/PPSSPP.AppImage"          "$ICONDIR/ppsspp.png"
+[[ -f "$APPDIR/duckstation-qt.AppImage" ]]  && _make_desktop "DuckStation"        "PlayStation 1 Emulator"      "$APPDIR/duckstation-qt.AppImage"  "$ICONDIR/duckstation.png"
+[[ -f "$APPDIR/pcsx2-Qt.AppImage" ]]        && _make_desktop "PCSX2"              "PlayStation 2 Emulator"      "$APPDIR/pcsx2-Qt.AppImage"        "$ICONDIR/pcsx2.png"
+[[ -f "$APPDIR/Cemu.AppImage" ]]            && _make_desktop "Cemu"               "Wii U Emulator"              "$APPDIR/Cemu.AppImage"            "$ICONDIR/cemu.png"
+[[ -f "$APPDIR/YamagiQ2.AppImage" ]]        && _make_desktop "Yamagi Quake II"    "Quake II Source Port"        "$APPDIR/YamagiQ2.AppImage"        "quake2"
+[[ -f "$APPDIR/UZDoom.AppImage" ]]          && _make_desktop "UZDoom"             "Doom Engine"                 "$APPDIR/UZDoom.AppImage"          "$ICONDIR/uzdoom.png"
 
-# mGBA
-[[ -f "$APPDIR/mGBA.AppImage" ]] && \
-    _make_desktop "mGBA" "Game Boy / GBA Emulator" "$APPDIR/mGBA.AppImage" "mgba"
+# HarbourMasters
+[[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]] && _make_desktop "Ship of Harkinian"  "Zelda: Ocarina of Time"      "$APPDIR/ShipOfHarkinian.AppImage" "applications-games"
+[[ -f "$APPDIR/2Ship2Harkinian.AppImage" ]] && _make_desktop "2 Ship 2 Harkinian" "Zelda: Majora's Mask"        "$APPDIR/2Ship2Harkinian.AppImage" "applications-games"
+[[ -f "$APPDIR/Starship.AppImage" ]]        && _make_desktop "Starship"           "Star Fox 64"                 "$APPDIR/Starship.AppImage"        "applications-games"
+[[ -f "$APPDIR/SpaghettiKart.AppImage" ]]   && _make_desktop "SpaghettiKart"      "Mario Kart 64"               "$APPDIR/SpaghettiKart.AppImage"   "applications-games"
+[[ -f "$APPDIR/Ghostship.AppImage" ]]       && _make_desktop "Ghostship"          "Super Mario 64"              "$APPDIR/Ghostship.AppImage"       "applications-games"
 
-# melonDS
-[[ -f "$APPDIR/melonDS.AppImage" ]] && \
-    _make_desktop "melonDS" "Nintendo DS Emulator" "$APPDIR/melonDS.AppImage" "melonds"
+# OpenMW — chemin dynamique
+if command -v openmw-launcher &>/dev/null; then
+    _make_desktop "OpenMW" "Morrowind Engine" "$(command -v openmw-launcher)" "openmw-launcher"
+elif [[ -f "$HOME/.local/share/openmw-bin/openmw-launcher" ]]; then
+    _make_desktop "OpenMW" "Morrowind Engine" "$HOME/.local/share/openmw-bin/openmw-launcher" "openmw-launcher"
+fi
 
-# Ryujinx Canary
-[[ -f "$APPDIR/Ryujinx.AppImage" ]] && \
-    _make_desktop "Ryujinx Canary" "Nintendo Switch Emulator" "$APPDIR/Ryujinx.AppImage" "ryujinx"
+# Daggerfall Unity — chemin dynamique
+DFU_BIN=$(find "$HOME/.local/share/daggerfall-unity" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
+if [[ -n "$DFU_BIN" ]]; then
+    _make_desktop "Daggerfall Unity" "TES II: Daggerfall" "$DFU_BIN" "applications-games"
+fi
 
-# Yamagi Quake II
-[[ -f "$APPDIR/YamagiQ2.AppImage" ]] && \
-    _make_desktop "Yamagi Quake II" "Quake II Source Port" "$APPDIR/YamagiQ2.AppImage" "quake2"
+# Mettre à jour le cache d'icônes KDE
+gtk-update-icon-cache "$HOME/.local/share/icons/hicolor/" 2>/dev/null || true
+update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
 
-# UZDoom
-[[ -f "$APPDIR/UZDoom.AppImage" ]] && \
-    _make_desktop "UZDoom" "Doom Engine" "$APPDIR/UZDoom.AppImage" "doom"
-
-# Ship of Harkinian
-[[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]] && \
-    _make_desktop "Ship of Harkinian" "Zelda: Ocarina of Time" "$APPDIR/ShipOfHarkinian.AppImage" "zelda"
-
-# 2 Ship 2 Harkinian
-[[ -f "$APPDIR/2Ship2Harkinian.AppImage" ]] && \
-    _make_desktop "2 Ship 2 Harkinian" "Zelda: Majora's Mask" "$APPDIR/2Ship2Harkinian.AppImage" "zelda"
-
-# Starship
-[[ -f "$APPDIR/Starship.AppImage" ]] && \
-    _make_desktop "Starship" "Star Fox 64" "$APPDIR/Starship.AppImage" "starfox"
-
-# SpaghettiKart
-[[ -f "$APPDIR/SpaghettiKart.AppImage" ]] && \
-    _make_desktop "SpaghettiKart" "Mario Kart 64" "$APPDIR/SpaghettiKart.AppImage" "mariokart"
-
-# Ghostship
-[[ -f "$APPDIR/Ghostship.AppImage" ]] && \
-    _make_desktop "Ghostship" "Super Mario 64" "$APPDIR/Ghostship.AppImage" "mario"
-
-unset -f _make_desktop
+unset -f _make_desktop _fetch_icon
 success "Raccourcis KDE créés dans ~/.local/share/applications/"
 
 # ── UZDoom (Doom engine) — AppImage officielle GitHub ────
