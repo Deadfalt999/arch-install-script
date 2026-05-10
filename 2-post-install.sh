@@ -594,11 +594,12 @@ else
         export DEBIAN_FRONTEND=noninteractive &&
         apt-get update -qq &&
         apt-get install -y -qq \
-            git cmake make pkg-config gcc g++ \
+            cmake make pkg-config gcc g++ wget \
             zlib1g-dev libbz2-dev libjpeg-dev \
             libsdl2-dev libsdl2-mixer-dev libsdl2-net-dev \
             libgtk-3-dev &&
-        git clone https://bitbucket.org/ecwolf/ecwolf.git --recursive /ecwolf &&
+        wget -q -O /ecwolf.tar.gz https://bitbucket.org/ecwolf/ecwolf/get/1.4.1.tar.gz &&
+        mkdir -p /ecwolf && tar -xzf /ecwolf.tar.gz -C /ecwolf --strip-components=1 &&
         cd /ecwolf && mkdir build && cd build &&
         cmake .. -DCMAKE_BUILD_TYPE=Release &&
         make -j\$(nproc)
