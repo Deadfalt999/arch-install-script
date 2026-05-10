@@ -649,11 +649,11 @@ _build_vkquake() {
         return 0
     }
 
-    # meson setup doit être lancé depuis le dossier Quake/
-    cd "$VKQUAKE_DIR/Quake"
+    # meson setup depuis la racine du repo vkQuake
+    cd "$VKQUAKE_DIR"
 
-    info "Configuration Meson (depuis $VKQUAKE_DIR/Quake)..."
-    meson setup build --buildtype=release || {
+    info "Configuration Meson (depuis $VKQUAKE_DIR)..."
+    meson setup Quake/build --buildtype=release Quake || {
         warn "Meson échoué — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         cd ~
@@ -661,7 +661,7 @@ _build_vkquake() {
     }
 
     info "Compilation en cours (peut prendre quelques minutes)..."
-    ninja -C build || {
+    ninja -C Quake/build || {
         warn "Compilation échouée — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         cd ~

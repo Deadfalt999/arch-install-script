@@ -625,27 +625,28 @@ _build_vkquake() {
     success "Dépendances VkQuake installées"
 
     info "Clonage de VkQuake depuis GitHub..."
+    # Supprimer le dossier si existant d'une tentative précédente
     [[ -d "$VKQUAKE_DIR" ]] && rm -rf "$VKQUAKE_DIR"
     git clone https://github.com/Novum/vkQuake.git "$VKQUAKE_DIR" || {
-        warn "Clonage échoué — fallback AUR vkquake-bin..."
+        warn "Clonage échoué — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         return 0
     }
 
-    # meson setup doit être lancé depuis le dossier Quake/
-    cd "$VKQUAKE_DIR/Quake"
+    # meson setup depuis la racine du repo vkQuake
+    cd "$VKQUAKE_DIR"
 
-    info "Configuration Meson (depuis $VKQUAKE_DIR/Quake)..."
-    meson setup build --buildtype=release || {
-        warn "Meson échoué — fallback AUR vkquake-bin..."
+    info "Configuration Meson (depuis $VKQUAKE_DIR)..."
+    meson setup Quake/build --buildtype=release Quake || {
+        warn "Meson échoué — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         cd ~
         return 0
     }
 
     info "Compilation en cours (peut prendre quelques minutes)..."
-    ninja -C build || {
-        warn "Compilation échouée — fallback AUR vkquake-bin..."
+    ninja -C Quake/build || {
+        warn "Compilation échouée — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         cd ~
         return 0
@@ -674,6 +675,7 @@ if [[ -f "$VKQUAKE_BIN" ]]; then
     success "VkQuake déjà compilé, skip."
 else
     _build_vkquake
+
 fi
 unset -f _build_vkquake
 
