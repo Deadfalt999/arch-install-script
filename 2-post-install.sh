@@ -377,8 +377,9 @@ warn "⚠️  Ces ports nécessitent les fichiers du jeu original"
 
 # OpenMW — tarball officiel depuis GitHub (OpenMW/openmw)
 OPENMW_DIR="$HOME/.local/share/openmw-bin"
+OPENMW_MARKER="$HOME/.local/share/.openmw_installed"
 info "Installation de OpenMW (Morrowind engine — tarball GitHub)..."
-if [[ -f "$OPENMW_DIR/openmw" ]] || command -v openmw &>/dev/null; then
+if [[ -f "$OPENMW_MARKER" ]]; then
     success "OpenMW déjà installé, skip."
 else
     OPENMW_URL=$(curl -fsSL "https://api.github.com/repos/OpenMW/openmw/releases/latest" \
@@ -404,18 +405,21 @@ Terminal=false
 Type=Application
 Categories=Game;
 EOF
+        touch "$OPENMW_MARKER"
         success "OpenMW installé — requiert les fichiers de Morrowind (TES III)"
         warn "Lance openmw-launcher et pointe vers tes fichiers Morrowind"
     else
         warn "URL OpenMW introuvable — fallback pacman..."
         sudo pacman -S --noconfirm openmw
+        touch "$OPENMW_MARKER"
     fi
 fi
 
 # Daggerfall Unity — zip Linux officiel depuis GitHub (Interkarma/daggerfall-unity)
 DFU_DIR="$HOME/.local/share/daggerfall-unity"
+DFU_MARKER="$HOME/.local/share/.daggerfall_installed"
 info "Installation de Daggerfall Unity (zip GitHub)..."
-if [[ -f "$DFU_DIR/DaggerfallUnity" ]]; then
+if [[ -f "$DFU_MARKER" ]]; then
     success "Daggerfall Unity déjà installé, skip."
 else
     DFU_URL=$(curl -fsSL "https://api.github.com/repos/Interkarma/daggerfall-unity/releases/latest" \
@@ -443,12 +447,14 @@ Terminal=false
 Type=Application
 Categories=Game;
 EOF
+        touch "$DFU_MARKER"
         success "Daggerfall Unity installé dans $DFU_DIR"
         warn "Les fichiers DOS Daggerfall sont gratuits sur Steam ou ici :"
         warn "https://github.com/Interkarma/daggerfall-unity/wiki/Installing-Daggerfall-Unity-Cross-Platform"
     else
         warn "URL Daggerfall Unity introuvable — fallback AUR..."
         yay -S --noconfirm daggerfall-unity-bin
+        touch "$DFU_MARKER"
     fi
 fi
 
@@ -525,6 +531,73 @@ else
         warn "URL Ghostship introuvable — télécharge manuellement depuis github.com/HarbourMasters/Ghostship"
     fi
 fi
+
+# ── Création des raccourcis KDE pour tous les AppImages ──
+banner "RACCOURCIS KDE — MENU APPLICATIONS"
+info "Création des liens .desktop pour tous les AppImages..."
+mkdir -p "$HOME/.local/share/applications"
+
+# Fonction utilitaire
+_make_desktop() {
+    local name="$1" generic="$2" exec="$3" icon="$4" categories="${5:-Game;}"
+    cat > "$HOME/.local/share/applications/${name// /-}.desktop" << EOF
+[Desktop Entry]
+Name=$name
+GenericName=$generic
+Exec=$exec
+Icon=$icon
+Terminal=false
+Type=Application
+Categories=$categories
+EOF
+}
+
+# RetroArch
+[[ -f "$APPDIR/RetroArch.AppImage" ]] && \
+    _make_desktop "RetroArch" "Multi-system Emulator" "$APPDIR/RetroArch.AppImage" "retroarch"
+
+# mGBA
+[[ -f "$APPDIR/mGBA.AppImage" ]] && \
+    _make_desktop "mGBA" "Game Boy / GBA Emulator" "$APPDIR/mGBA.AppImage" "mgba"
+
+# melonDS
+[[ -f "$APPDIR/melonDS.AppImage" ]] && \
+    _make_desktop "melonDS" "Nintendo DS Emulator" "$APPDIR/melonDS.AppImage" "melonds"
+
+# Ryujinx Canary
+[[ -f "$APPDIR/Ryujinx.AppImage" ]] && \
+    _make_desktop "Ryujinx Canary" "Nintendo Switch Emulator" "$APPDIR/Ryujinx.AppImage" "ryujinx"
+
+# Yamagi Quake II
+[[ -f "$APPDIR/YamagiQ2.AppImage" ]] && \
+    _make_desktop "Yamagi Quake II" "Quake II Source Port" "$APPDIR/YamagiQ2.AppImage" "quake2"
+
+# UZDoom
+[[ -f "$APPDIR/UZDoom.AppImage" ]] && \
+    _make_desktop "UZDoom" "Doom Engine" "$APPDIR/UZDoom.AppImage" "doom"
+
+# Ship of Harkinian
+[[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]] && \
+    _make_desktop "Ship of Harkinian" "Zelda: Ocarina of Time" "$APPDIR/ShipOfHarkinian.AppImage" "zelda"
+
+# 2 Ship 2 Harkinian
+[[ -f "$APPDIR/2Ship2Harkinian.AppImage" ]] && \
+    _make_desktop "2 Ship 2 Harkinian" "Zelda: Majora's Mask" "$APPDIR/2Ship2Harkinian.AppImage" "zelda"
+
+# Starship
+[[ -f "$APPDIR/Starship.AppImage" ]] && \
+    _make_desktop "Starship" "Star Fox 64" "$APPDIR/Starship.AppImage" "starfox"
+
+# SpaghettiKart
+[[ -f "$APPDIR/SpaghettiKart.AppImage" ]] && \
+    _make_desktop "SpaghettiKart" "Mario Kart 64" "$APPDIR/SpaghettiKart.AppImage" "mariokart"
+
+# Ghostship
+[[ -f "$APPDIR/Ghostship.AppImage" ]] && \
+    _make_desktop "Ghostship" "Super Mario 64" "$APPDIR/Ghostship.AppImage" "mario"
+
+unset -f _make_desktop
+success "Raccourcis KDE créés dans ~/.local/share/applications/"
 
 # ── UZDoom (Doom engine) — AppImage officielle GitHub ────
 banner "UZDOOM — APPIMAGE OFFICIELLE"
