@@ -378,7 +378,7 @@ warn "⚠️  Ces ports nécessitent les fichiers du jeu original"
 # OpenMW — tarball officiel depuis GitHub (OpenMW/openmw)
 OPENMW_DIR="$HOME/.local/share/openmw-bin"
 info "Installation de OpenMW (Morrowind engine — tarball GitHub)..."
-if [[ -f "$OPENMW_DIR/openmw" ]]; then
+if [[ -f "$OPENMW_DIR/openmw" ]] || command -v openmw &>/dev/null; then
     success "OpenMW déjà installé, skip."
 else
     OPENMW_URL=$(curl -fsSL "https://api.github.com/repos/OpenMW/openmw/releases/latest" \
@@ -642,7 +642,7 @@ fi
 banner "VKQUAKE — COMPILATION DEPUIS SOURCE"
 
 VKQUAKE_DIR="$HOME/.local/share/vkquake-source"
-VKQUAKE_BIN="$VKQUAKE_DIR/Quake/build/vkquake"
+VKQUAKE_BIN="$VKQUAKE_DIR/build/vkquake"
 
 _build_vkquake() {
     info "Installation des dépendances de compilation VkQuake..."
@@ -663,11 +663,11 @@ _build_vkquake() {
         return 0
     }
 
-    # meson setup depuis la racine du repo vkQuake
+    # meson setup depuis la racine du repo
     cd "$VKQUAKE_DIR"
 
     info "Configuration Meson (depuis $VKQUAKE_DIR)..."
-    meson setup Quake/build --buildtype=release Quake || {
+    meson setup build --buildtype=release || {
         warn "Meson échoué — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         cd ~
@@ -675,7 +675,7 @@ _build_vkquake() {
     }
 
     info "Compilation en cours (peut prendre quelques minutes)..."
-    ninja -C Quake/build || {
+    ninja -C build || {
         warn "Compilation échouée — fallback AUR vkquake..."
         yay -S --noconfirm vkquake
         cd ~
