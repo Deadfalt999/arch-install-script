@@ -170,6 +170,13 @@ else
     sudo systemctl start docker
 
     info "Compilation de Dolphin dans Ubuntu 24.04 (GCC 13, compatible C++20)..."
+    info "Vérification des conteneurs Docker existants..."
+    if sudo docker ps -a --format '{{.Names}}' | grep -q "^dolphin-build$"; then
+        warn "Conteneur 'dolphin-build' existant détecté — suppression et relance..."
+        sudo docker rm -f dolphin-build 2>/dev/null || true
+        success "Conteneur 'dolphin-build' supprimé"
+    fi
+
     sudo docker run --name dolphin-build ubuntu:24.04 bash -c "
         export DEBIAN_FRONTEND=noninteractive &&
         apt-get update -qq &&
@@ -512,6 +519,13 @@ else
     sudo systemctl start docker
 
     info "Compilation de ECWolf dans un conteneur Ubuntu 20.04 (GCC 9, sans bug tmemory.h)..."
+    info "Vérification des conteneurs Docker existants..."
+    if sudo docker ps -a --format '{{.Names}}' | grep -q "^ecwolf-build$"; then
+        warn "Conteneur 'ecwolf-build' existant détecté — suppression et relance..."
+        sudo docker rm -f ecwolf-build 2>/dev/null || true
+        success "Conteneur 'ecwolf-build' supprimé"
+    fi
+
     sudo docker run --name ecwolf-build ubuntu:20.04 bash -c "
         export DEBIAN_FRONTEND=noninteractive &&
         apt-get update -qq &&
