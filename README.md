@@ -1,6 +1,6 @@
 # 🐧 Arch Linux Install Scripts
 
-Automated Arch Linux installation scripts for three different configurations — **laptop** (AMD iGPU + NVIDIA), **desktop** (AMD CPU + AMD GPU), and **VMware Workstation**.
+Automated Arch Linux installation scripts for three different configurations — **laptop** (AMD iGPU + NVIDIA), **desktop** (AMD CPU + AMD GPU), **desktop NVIDIA** (AMD CPU + NVIDIA GPU), and **VMware Workstation**.
 
 Each configuration comes with two scripts:
 - **Script 1** — runs from the live USB, installs and configures the base system
@@ -22,19 +22,19 @@ Each configuration comes with two scripts:
 | Script | Target | Description |
 |---|---|---|
 | `1-install.sh` | Laptop | AMD iGPU + NVIDIA 4060 · Optimus hybrid · envycontrol |
-| `2-post-install.sh` | Laptop | yay · Waterfox · envycontrol · emulators · AppImages · Gear Lever · KDE theming |
+| `2-post-install.sh` | Laptop | yay · Waterfox · envycontrol · emulators · source ports · AppImages · Gear Lever · KDE theming |
 | `1-install-vm.sh` | VMware Workstation | VMware SVGA drivers · open-vm-tools |
-| `2-post-install-vm.sh` | VMware Workstation | yay · Waterfox · emulators · AppImages · Gear Lever · KDE theming |
+| `2-post-install-vm.sh` | VMware Workstation | yay · Waterfox · emulators · source ports · AppImages · Gear Lever · KDE theming |
 | `1-install-desktop.sh` | Desktop AMD | AMD CPU + AMD GPU · no NVIDIA · no Optimus |
-| `2-post-install-desktop.sh` | Desktop AMD | yay · Waterfox · emulators · AppImages · Gear Lever · KDE theming |
+| `2-post-install-desktop.sh` | Desktop AMD | yay · Waterfox · emulators · source ports · AppImages · Gear Lever · KDE theming |
 | `1-install-desktop-nvidia.sh` | Desktop NVIDIA | AMD CPU + NVIDIA GPU only · no iGPU · no Optimus |
-| `2-post-install-desktop-nvidia.sh` | Desktop NVIDIA | yay · Waterfox · emulators · AppImages · Gear Lever · KDE theming |
+| `2-post-install-desktop-nvidia.sh` | Desktop NVIDIA | yay · Waterfox · emulators · source ports · AppImages · Gear Lever · KDE theming |
 
 ---
 
 ## ⚙️ Common Configuration
 
-All three Script 1s share these defaults — **edit them before running**:
+All Script 1s share these defaults — **edit them before running**:
 
 | Variable | Default | Description |
 |---|---|---|
@@ -43,7 +43,7 @@ All three Script 1s share these defaults — **edit them before running**:
 | `USERNAME` | `Admin` | User account name |
 | `TIMEZONE` | `Europe/Paris` | System timezone |
 | `LOCALE` | `fr_FR.UTF-8` | System locale |
-| `KEYMAP` | `fr` | Console keymap |
+| `KEYMAP` | `fr` | Console keymap (AZERTY) |
 
 ---
 
@@ -113,9 +113,10 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 - `networkmanager` — network management
 - `amd-ucode` — AMD microcode (laptop and desktop only)
 
-### Desktop environment
+### Desktop environments
 - **KDE Plasma** (Wayland) — primary session
 - **XFCE4** (X11) — secondary session
+- **Cinnamon** (X11) — third session
 - `sddm` — display manager
 
 ### Applications
@@ -130,9 +131,9 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 | Yakuake | pacman |
 | Dolphin, Konsole, Kate | pacman |
 | wine-staging + gecko + mono + winetricks | pacman |
-| Waterfox | Official tarball (auto-latest) |
+| Waterfox | Official tarball (auto-latest via GitHub API) |
 | yay | AUR (compiled from source) |
-| ProtonPlus | AUR |
+| ProtonPlus | AUR — Proton/Wine/DXVK manager |
 | Gear Lever | AUR — AppImage manager |
 
 ### Emulators (Script 2)
@@ -140,17 +141,36 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 | Emulator | System | Method | Location |
 |---|---|---|---|
 | RetroArch | Multi-system frontend | AppImage (nightly) | `~/Applications/` |
-| PCSX2 | PlayStation 2 | AppImage (latest) | `~/Applications/` |
-| mGBA | Game Boy / GBA | AppImage (latest) | `~/Applications/` |
-| Cemu | Wii U | AppImage (latest) | `~/Applications/` |
-| DuckStation | PlayStation 1 | AppImage (latest) | `~/Applications/` |
-| Dolphin | GameCube / Wii | pacman | system |
-| PPSSPP | PSP | pacman | system |
-| DeSmuME | Nintendo DS | pacman | system |
-| Ryujinx Canary | Nintendo Switch | AUR (ryujinx-canary) | system |
+| PCSX2 | PlayStation 2 | AppImage | `~/Applications/` |
+| mGBA | Game Boy / GBA | AppImage | `~/Applications/` |
+| Cemu | Wii U | AppImage | `~/Applications/` |
+| DuckStation | PlayStation 1 | AppImage | `~/Applications/` |
+| PPSSPP | PSP | AppImage | `~/Applications/` |
+| melonDS | Nintendo DS | AppImage (official) | `~/Applications/` |
+| Ryujinx Canary | Nintendo Switch | AppImage (Ryubing) | `~/Applications/` |
+| Dolphin | GameCube / Wii | Compiled from source | `~/.local/share/dolphin-source/` |
 | BGB | Game Boy (Windows) | `.exe` via Wine | `~/.local/share/bgb/` |
 
-> AppImages are downloaded automatically from their official GitHub releases and stored in `~/Applications/`. Gear Lever integrates them into the app menu — just drag and drop any AppImage onto it.
+### PC Ports — HarbourMasters (Script 2)
+
+> ⚠️ Each port requires a legally obtained ROM placed in `~/Applications/` alongside the AppImage.
+
+| Port | Game | Method | Location |
+|---|---|---|---|
+| Ship of Harkinian | Zelda: Ocarina of Time | AppImage | `~/Applications/` |
+| 2 Ship 2 Harkinian | Zelda: Majora's Mask | AppImage | `~/Applications/` |
+| Starship | Star Fox 64 | AppImage | `~/Applications/` |
+| SpaghettiKart | Mario Kart 64 | AppImage | `~/Applications/` |
+| Ghostship | Super Mario 64 | AppImage (extracted from zip) | `~/Applications/` |
+
+### Source Ports (Script 2)
+
+| Port | Game | Method | Location |
+|---|---|---|---|
+| vkQuake | Quake 1 (Vulkan) | Compiled from source (meson+ninja) | `~/.local/share/vkquake-source/` |
+| UZDoom | Doom engine (ZDoom fork) | AppImage (official GitHub) | `~/Applications/` |
+| Yamagi Quake II | Quake II | AppImage (unofficial) | `~/Applications/` |
+| ECWolf | Wolfenstein 3D | Compiled via Docker (Ubuntu 20.04) | `~/.local/share/ecwolf/` |
 
 ### GPU drivers
 | Configuration | Drivers |
@@ -164,16 +184,16 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 
 ## 🎨 Post-install Theming (Script 2)
 
-Script 2 detects the current session automatically and applies:
+Script 2 auto-detects the current session and applies:
 
 **KDE session:**
-- Breeze Dark theme (`kdeglobals`)
-- Language set to English US (keyboard stays French AZERTY)
-- SDDM language set to English via systemd drop-in
-- SDDM wallpaper set to Next Breeze Dark
+- Breeze Dark theme via `~/.config/kdeglobals`
+- Language → English US (keyboard stays French AZERTY)
+- SDDM language → English via systemd drop-in (`/etc/systemd/system/sddm.service.d/`)
+- SDDM wallpaper → Next Breeze Dark (`5120x2880.png`)
 
 **XFCE session:**
-- Language set to English US via `~/.xprofile` (keyboard stays French AZERTY)
+- Language → English US via `~/.xprofile` (keyboard stays French AZERTY)
 
 > Log out and back in after running Script 2 for changes to take effect.
 
@@ -202,16 +222,17 @@ The NVIDIA proprietary driver runs at all times with `nvidia_drm modeset=1` enab
 
 ## 🖥️ Available Sessions in SDDM
 
-| Session | Protocol | Config |
+| Session | Protocol | Status |
 |---|---|---|
 | Plasma (Wayland) | Wayland | ✅ Default — recommended |
 | Xfce Session | X11 | ✅ Stable |
+| Cinnamon | X11 | ✅ Stable |
 
 ---
 
 ## 🔑 Password Policy
 
-Script 1 accepts any password length. If the password is under 6 characters, a **security warning** is displayed and confirmation is required before continuing.
+Script 1 accepts any password length. If the password is under 6 characters, a **security warning** is displayed explaining the risks, and confirmation (`yes/no`) is required before continuing.
 
 ---
 
@@ -227,6 +248,8 @@ Script 1 accepts any password length. If the password is under 6 characters, a *
 | VMware: resolution locked | Check `systemctl status vmtoolsd` |
 | VMware: clipboard not working | `systemctl restart vmtoolsd` |
 | VMware: shared folders missing | VM → Settings → Options → Shared Folders → enable |
+| ECWolf won't compile | Docker method uses Ubuntu 20.04 (GCC 9) to avoid the tmemory.h const bug |
+| HarbourMasters port won't launch | Place your legally obtained ROM in the same folder as the AppImage |
 
 ---
 
