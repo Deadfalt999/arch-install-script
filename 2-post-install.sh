@@ -176,7 +176,7 @@ else
 fi
 
 download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
-download_appimage "mgba-emu/mgba"         "AppImage"   "mGBA.AppImage"         || sudo pacman -S --noconfirm mgba
+download_appimage "mgba-emu/mgba"         "AppImage"   "mGBA.AppImage"         || sudo pacman -S --noconfirm mgba-qt
 download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || sudo pacman -S --noconfirm
 download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation
 
