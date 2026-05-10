@@ -100,6 +100,12 @@ if command -v gearlever &>/dev/null; then
     success "Gear Lever déjà installé, skip."
 else
     info "Installation de Gear Lever (AUR)..."
+    # Augmenter timeout sudo
+    sudo -v
+    sudo sh -c 'echo "Defaults timestamp_timeout=60" > /etc/sudoers.d/timeout'
+    info "Installation de dwarfs (dépendance)..."
+    yay -S --noconfirm --mflags "--nocheck" dwarfs || warn "dwarfs échoué"
+    info "Installation de gearlever..."
     yay -S --noconfirm --mflags "--nocheck" gearlever
     success "Gear Lever installé"
 fi
