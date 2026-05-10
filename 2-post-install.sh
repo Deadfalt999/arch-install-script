@@ -180,21 +180,296 @@ download_appimage "mgba-emu/mgba"         "AppImage"   "mGBA.AppImage"         |
 download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || sudo pacman -S --noconfirm
 download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation
 
-# ── Pacman — émulateurs sans AppImage fiable ─────────────
-info "Installation des émulateurs pacman (sans AppImage officielle)..."
-sudo pacman -S --noconfirm \
-    dolphin-emu \
-    ppsspp \
-    desmume
-success "Émulateurs pacman installés (dolphin, ppsspp, desmume)"
 
-# ── AUR — ryujinx-canary (binaire, pas AppImage) ─────────
-info "Installation de Ryujinx Canary (fork Ryubing) depuis l'AUR..."
-if command -v ryujinx &>/dev/null; then
-    success "Ryujinx déjà installé, skip."
+# ── Dolphin (GameCube / Wii) — compilé depuis source ────
+banner "DOLPHIN — COMPILATION DEPUIS SOURCE"
+
+DOLPHIN_DIR="$HOME/.local/share/dolphin-source"
+DOLPHIN_BIN="$DOLPHIN_DIR/build/Binaries/dolphin-emu"
+
+if [[ -f "$DOLPHIN_BIN" ]]; then
+    success "Dolphin déjà compilé, skip."
 else
-    yay -S --noconfirm ryujinx-canary
-    success "Ryujinx Canary installé"
+    info "Installation des dépendances de compilation Dolphin..."
+    sudo pacman -S --noconfirm \
+        cmake ninja git gcc pkg-config \
+        mesa mesa-libgl libgl \
+        libx11 libxrandr libxi libxext libxfixes libxxf86vm \
+        systemd libevdev libudev0 \
+        sdl2 \
+        sfml miniupnpc \
+        mbedtls curl \
+        hidapi bluez-libs \
+        vulkan-headers vulkan-icd-loader \
+        wayland wayland-protocols \
+        qt6-base qt6-svg qt6-multimedia \
+        ffmpeg libpng \
+        alsa-lib libusb \
+        fmt lzo zstd xz \
+        enet pugixml xxhash \
+        glslang spirv-cross \
+        openal \
+        libspng \
+        zip unzip
+    success "Dépendances de compilation installées"
+
+    info "Clonage de Dolphin depuis GitHub..."
+    git clone https://github.com/dolphin-emu/dolphin.git "$DOLPHIN_DIR" || {
+        warn "Clonage échoué — fallback dolphin-emu pacman"
+        sudo pacman -S --noconfirm dolphin-emu
+        return 0
+    }
+
+    cd "$DOLPHIN_DIR"
+
+    info "Initialisation des submodules (sans Qt/FFmpeg-bin inutiles)..."
+    git -c submodule."Externals/Qt".update=none \
+        -c submodule."Externals/FFmpeg-bin".update=none \
+        -c submodule."Externals/libadrenotools".update=none \
+        submodule update --init --recursive || {
+        warn "Submodules échoués — fallback dolphin-emu pacman"
+        sudo pacman -S --noconfirm dolphin-emu
+        cd ~
+        return 0
+    }
+
+    info "Configuration CMake (Release + optimisé pour ce CPU)..."
+    mkdir -p build && cd build
+    cmake .. -GNinja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DLINUX_LOCAL_DEV=true \
+        -DENABLE_LTO=ON \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_CXX_FLAGS="-march=native" \
+        -DCMAKE_C_FLAGS="-march=native" || {
+        warn "CMake échoué — fallback dolphin-emu pacman"
+        sudo pacman -S --noconfirm dolphin-emu
+        cd ~
+        return 0
+    }
+
+    info "Compilation en cours (peut prendre 10-20 minutes)..."
+    ninja -j$(nproc) || {
+        warn "Compilation échouée — fallback dolphin-emu pacman"
+        sudo pacman -S --noconfirm dolphin-emu
+        cd ~
+        return 0
+    }
+
+    cd ~
+
+    info "Création du symlink..."
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$DOLPHIN_BIN" "$HOME/.local/bin/dolphin-emu"
+
+    info "Création du raccourci bureau..."
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/dolphin-emu.desktop" << EOF
+[Desktop Entry]
+Name=Dolphin Emulator
+GenericName=GameCube / Wii Emulator
+Exec=$DOLPHIN_BIN
+Icon=dolphin-emu
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+EOF
+
+    success "Dolphin compilé et installé depuis source — optimisé pour ce CPU"
+fi
+
+
+# ── AppImage — melonDS (Nintendo DS) — officielle ────────
+download_appimage "melonDS-emu/melonDS" "x86_64.AppImage" "melonDS.AppImage" || yay -S --noconfirm melonds-bin
+
+# ── AppImage — PPSSPP (PSP) ───────────────────────────────
+download_appimage "hrydgard/ppsspp" "AppImage" "PPSSPP.AppImage" || sudo pacman -S --noconfirm ppsspp
+
+# ── AppImage — Ryubing/Canary (Nintendo Switch) ──────────
+info "Téléchargement de Ryujinx Canary (AppImage officielle Ryubing)..."
+if [[ -f "$APPDIR/Ryujinx.AppImage" ]]; then
+    success "Ryujinx déjà présent, skip."
+else
+    RYUBING_URL=$(curl -fsSL "https://git.ryujinx.app/Ryubing/Canary/releases" \
+        | tr '"><> ' '\n' \
+        | grep -Eoi "http.*\.AppImage$" \
+        | grep -i "x64\|x86_64\|amd64" \
+        | head -1)
+    if [[ -n "$RYUBING_URL" ]]; then
+        curl -fsSL --progress-bar -o "$APPDIR/Ryujinx.AppImage" "$RYUBING_URL"
+        chmod +x "$APPDIR/Ryujinx.AppImage"
+        success "Ryujinx Canary AppImage installé : $RYUBING_URL"
+    else
+        warn "URL Ryubing introuvable — fallback AUR..."
+        yay -S --noconfirm ryujinx-canary
+    fi
+fi
+
+# ── UZDoom (Doom engine) — AppImage officielle GitHub ────
+banner "UZDOOM — APPIMAGE OFFICIELLE"
+
+if [[ -f "$APPDIR/UZDoom.AppImage" ]]; then
+    success "UZDoom déjà présent, skip."
+else
+    info "Téléchargement de UZDoom AppImage depuis GitHub (UZDoom/UZDoom)..."
+    UZDOOM_URL=$(curl -fsSL "https://api.github.com/repos/UZDoom/UZDoom/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*Linux[^"]*\.AppImage"' \
+        | grep -v Legacy \
+        | head -1 \
+        | cut -d'"' -f4)
+    if [[ -n "$UZDOOM_URL" ]]; then
+        curl -fsSL --progress-bar -o "$APPDIR/UZDoom.AppImage" "$UZDOOM_URL"
+        chmod +x "$APPDIR/UZDoom.AppImage"
+        success "UZDoom AppImage installé : $UZDOOM_URL"
+    else
+        warn "URL UZDoom introuvable — fallback AUR..."
+        yay -S --noconfirm uzdoom
+    fi
+fi
+
+# ── Yamagi Quake II — AppImage non-officielle (tx00100xt) ─
+banner "YAMAGI QUAKE II — APPIMAGE"
+
+if [[ -f "$APPDIR/YamagiQ2.AppImage" ]]; then
+    success "Yamagi Quake II déjà présent, skip."
+else
+    info "Téléchargement de Yamagi Quake II AppImage (tx00100xt/yquake2-appimage)..."
+    YQ2_URL=$(curl -fsSL "https://api.github.com/repos/tx00100xt/yquake2-appimage/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*x86_64\.AppImage"' \
+        | head -1 \
+        | cut -d'"' -f4)
+    if [[ -n "$YQ2_URL" ]]; then
+        curl -fsSL --progress-bar -o "$APPDIR/YamagiQ2.AppImage" "$YQ2_URL"
+        chmod +x "$APPDIR/YamagiQ2.AppImage"
+        success "Yamagi Quake II AppImage installé : $YQ2_URL"
+    else
+        warn "URL Yamagi Q2 introuvable — fallback AUR..."
+        yay -S --noconfirm yamagi-quake2
+    fi
+fi
+
+# ── ECWolf (Wolfenstein 3D) — compilation via Docker ─────
+banner "ECWOLF — COMPILATION VIA DOCKER (Ubuntu 20.04)"
+
+ECWOLF_DIR="$HOME/.local/share/ecwolf"
+ECWOLF_BIN="$ECWOLF_DIR/ecwolf"
+
+if [[ -f "$ECWOLF_BIN" ]]; then
+    success "ECWolf déjà compilé, skip."
+else
+    info "Installation de Docker..."
+    sudo pacman -S --noconfirm docker
+    sudo systemctl start docker
+
+    info "Compilation de ECWolf dans un conteneur Ubuntu 20.04 (GCC 9, sans bug tmemory.h)..."
+    sudo docker run --name ecwolf-build ubuntu:20.04 bash -c "
+        export DEBIAN_FRONTEND=noninteractive &&
+        apt-get update -qq &&
+        apt-get install -y -qq \
+            git cmake make pkg-config gcc g++ \
+            zlib1g-dev libbz2-dev libjpeg-dev \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-net-dev \
+            libgtk-3-dev &&
+        git clone https://bitbucket.org/ecwolf/ecwolf.git --recursive /ecwolf &&
+        cd /ecwolf && mkdir build && cd build &&
+        cmake .. -DCMAKE_BUILD_TYPE=Release &&
+        make -j\$(nproc)
+    " && {
+        info "Extraction des binaires compilés..."
+        mkdir -p "$ECWOLF_DIR"
+        sudo docker cp ecwolf-build:/ecwolf/build/ecwolf "$ECWOLF_DIR/"
+        sudo docker cp ecwolf-build:/ecwolf/build/ecwolf.pk3 "$ECWOLF_DIR/"
+
+        info "Création du symlink..."
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$ECWOLF_BIN" "$HOME/.local/bin/ecwolf"
+
+        info "Création du raccourci bureau..."
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$HOME/.local/share/applications/ecwolf.desktop" << EOF
+[Desktop Entry]
+Name=ECWolf
+GenericName=Wolfenstein 3D
+Exec=$ECWOLF_BIN
+Icon=wolf3d
+Terminal=false
+Type=Application
+Categories=Game;
+EOF
+        success "ECWolf compilé et installé depuis Ubuntu 20.04"
+    } || {
+        warn "Compilation ECWolf échouée — fallback AUR..."
+        yay -S --noconfirm ecwolf
+    }
+
+    info "Nettoyage Docker (conteneur + image)..."
+    sudo docker rm ecwolf-build 2>/dev/null || true
+    sudo docker rmi ubuntu:20.04 2>/dev/null || true
+    sudo systemctl stop docker
+    success "Docker nettoyé"
+fi
+
+# ── VkQuake (Quake 1 — Vulkan) — compilé depuis source ──
+banner "VKQUAKE — COMPILATION DEPUIS SOURCE"
+
+VKQUAKE_DIR="$HOME/.local/share/vkquake-source"
+VKQUAKE_BIN="$VKQUAKE_DIR/Quake/vkquake"
+
+if [[ -f "$VKQUAKE_BIN" ]]; then
+    success "VkQuake déjà compilé, skip."
+else
+    info "Installation des dépendances de compilation VkQuake..."
+    sudo pacman -S --noconfirm \
+        git meson ninja pkg-config gcc \
+        flac libvorbis mpg123 opusfile \
+        sdl2 vulkan-headers vulkan-icd-loader \
+        glslang spirv-tools \
+        libx11 libgl
+    success "Dépendances VkQuake installées"
+
+    info "Clonage de VkQuake depuis GitHub..."
+    git clone https://github.com/Novum/vkQuake.git "$VKQUAKE_DIR" || {
+        warn "Clonage échoué — fallback AUR vkquake..."
+        yay -S --noconfirm vkquake
+        return 0
+    }
+
+    cd "$VKQUAKE_DIR/Quake"
+
+    info "Configuration Meson..."
+    meson setup build --buildtype=release || {
+        warn "Meson échoué — fallback AUR vkquake..."
+        yay -S --noconfirm vkquake
+        cd ~
+        return 0
+    }
+
+    info "Compilation en cours (peut prendre quelques minutes)..."
+    ninja -C build || {
+        warn "Compilation échouée — fallback AUR vkquake..."
+        yay -S --noconfirm vkquake
+        cd ~
+        return 0
+    }
+
+    # Le binaire est dans build/
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$VKQUAKE_DIR/Quake/build/vkquake" "$HOME/.local/bin/vkquake"
+
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/vkquake.desktop" << EOF
+[Desktop Entry]
+Name=vkQuake
+GenericName=Quake (Vulkan)
+Exec=$VKQUAKE_DIR/Quake/build/vkquake
+Icon=quake
+Terminal=false
+Type=Application
+Categories=Game;
+EOF
+
+    cd ~
+    success "VkQuake compilé et installé depuis source (Vulkan)"
 fi
 
 # ── Wine Staging & outils (pacman) ───────────────────────
@@ -334,20 +609,42 @@ echo -e "\n${GREEN}${BOLD}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║           ✅ POST-INSTALLATION TERMINÉE !                    ║"
 echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  Redémarre pour appliquer le mode GPU hybride :             ║"
-echo "║    sudo reboot                                              ║"
+echo "║  LOGICIELS INSTALLÉS :                                      ║"
+echo "║                                                              ║"
+echo "║  Outils AUR / Système                                        ║"
+echo "║    yay              → AUR helper                            ║"
+echo "║    ProtonPlus        → gestionnaire Proton/Wine              ║"
+echo "║    Gear Lever        → gestionnaire AppImages                ║"
+echo "║    wine-staging      → compatibilité Windows                 ║"
+echo "║    Waterfox          → navigateur (tarball officiel)         ║"
+echo "║                                                              ║"
+echo "║  Émulateurs — AppImages (~/Applications/)                    ║"
+echo "║    RetroArch         → multi-systèmes (nightly)             ║"
+echo "║    PCSX2             → PlayStation 2                        ║"
+echo "║    mGBA              → Game Boy / GBA                       ║"
+echo "║    Cemu              → Wii U                                ║"
+echo "║    DuckStation       → PlayStation 1                        ║"
+echo "║    PPSSPP            → PSP                                  ║"
+echo "║    melonDS           → Nintendo DS                          ║"
+echo "║    UZDoom            → Doom engine (ZDoom fork)             ║"
+echo "║    Yamagi Quake II   → Quake II (AppImage non-officielle)   ║"
+echo "║    Ryujinx Canary    → Nintendo Switch                      ║"
+echo "║                                                              ║"
+echo "║  Émulateurs — Packages système                               ║"
+echo "║    Dolphin           → GameCube / Wii (compilé source)      ║"
+echo "║    vkQuake           → Quake 1 Vulkan (compilé source)      ║"
+echo "║    ECWolf            → Wolfenstein 3D (Docker/source)       ║"
+echo "║    BGB               → Game Boy (Windows .exe via Wine)     ║"
+echo "║    Ryujinx Canary    → Nintendo Switch (AppImage)           ║"
+echo "║    dolphin-emu       → GameCube / Wii                       ║"
 echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  COMMANDES UTILES — envycontrol :                           ║"
+echo "║  GPU — envycontrol (laptop uniquement) :                    ║"
 echo "║    envycontrol --query           → mode GPU actuel          ║"
 echo "║    sudo envycontrol -s hybrid    → AMD + NVIDIA à la demande║"
 echo "║    sudo envycontrol -s nvidia    → NVIDIA uniquement        ║"
 echo "║    sudo envycontrol -s integrated→ AMD uniquement (batterie)║"
 echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  DANS KDE :                                                 ║"
-echo "║    Clic droit sur une app → 'Lancer avec GPU dédié'         ║"
-echo "║    (via switcheroo-control, déjà actif)                     ║"
-echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  STEAM :                                                    ║"
+echo "║  STEAM — lancer un jeu sur NVIDIA :                         ║"
 echo "║    Propriétés du jeu → Options de lancement :               ║"
 echo "║    prime-run %command%                                      ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
