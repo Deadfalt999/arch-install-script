@@ -152,8 +152,8 @@ fi
 
 download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
 download_appimage "mgba-emu/mgba"         "AppImage"   "mGBA.AppImage"         || sudo pacman -S --noconfirm mgba-qt
-download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || sudo pacman -S --noconfirm
-download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation
+download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || yay -S --noconfirm cemu-bin
+download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
 
 
 # ── Dolphin (GameCube / Wii) — compilation via Docker ────
@@ -183,7 +183,7 @@ else
             libhidapi-dev libbluetooth-dev \
             libvulkan-dev \
             libwayland-dev wayland-protocols \
-            qt6-base-dev libqt6svg6-dev qt6-multimedia-dev \
+            qt6-base-dev qt6-base-private-dev libqt6svg6-dev qt6-multimedia-dev \
             libavcodec-dev libavformat-dev libswscale-dev libpng-dev \
             libasound2-dev libusb-1.0-0-dev \
             libfmt-dev liblzo2-dev libzstd-dev \
@@ -552,7 +552,7 @@ else
     info "Clonage de VkQuake depuis GitHub..."
     git clone https://github.com/Novum/vkQuake.git "$VKQUAKE_DIR" || {
         warn "Clonage échoué — fallback AUR vkquake..."
-        yay -S --noconfirm vkquake
+        yay -S --noconfirm vkquake-bin
         return 0
     }
 
@@ -561,7 +561,7 @@ else
     info "Configuration Meson..."
     meson setup build --buildtype=release || {
         warn "Meson échoué — fallback AUR vkquake..."
-        yay -S --noconfirm vkquake
+        yay -S --noconfirm vkquake-bin
         cd ~
         return 0
     }
@@ -569,7 +569,7 @@ else
     info "Compilation en cours (peut prendre quelques minutes)..."
     ninja -C build || {
         warn "Compilation échouée — fallback AUR vkquake..."
-        yay -S --noconfirm vkquake
+        yay -S --noconfirm vkquake-bin
         cd ~
         return 0
     }
