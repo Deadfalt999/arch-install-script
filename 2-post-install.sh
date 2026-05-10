@@ -195,7 +195,6 @@ else
         cmake ninja git gcc pkg-config \
         mesa mesa-libgl libgl \
         libx11 libxrandr libxi libxext libxfixes libxxf86vm \
-        systemd libevdev libudev0 \
         sdl2 \
         sfml miniupnpc \
         mbedtls curl \
