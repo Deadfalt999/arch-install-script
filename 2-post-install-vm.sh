@@ -151,7 +151,11 @@ else
 fi
 
 download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
-download_appimage "mgba-emu/mgba"         "AppImage"   "mGBA.AppImage"         || sudo pacman -S --noconfirm mgba-qt
+if [[ -f "$APPDIR/mGBA.AppImage" ]]; then
+    success "mGBA déjà présent, skip."
+else
+    download_appimage "mgba-emu/mgba" "AppImage" "mGBA.AppImage" || sudo pacman -S --noconfirm mgba-qt
+fi
 download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || yay -S --noconfirm cemu-bin
 download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
 
@@ -591,9 +595,10 @@ _build_vkquake() {
     success "Dépendances VkQuake installées"
 
     info "Clonage de VkQuake depuis GitHub..."
+    [[ -d "$VKQUAKE_DIR" ]] && rm -rf "$VKQUAKE_DIR"
     git clone https://github.com/Novum/vkQuake.git "$VKQUAKE_DIR" || {
         warn "Clonage échoué — fallback AUR vkquake-bin..."
-        yay -S --noconfirm vkquake-bin
+        yay -S --noconfirm vkquake
         return 0
     }
 
@@ -603,7 +608,7 @@ _build_vkquake() {
     info "Configuration Meson (depuis $VKQUAKE_DIR/Quake)..."
     meson setup build --buildtype=release || {
         warn "Meson échoué — fallback AUR vkquake-bin..."
-        yay -S --noconfirm vkquake-bin
+        yay -S --noconfirm vkquake
         cd ~
         return 0
     }
@@ -611,7 +616,7 @@ _build_vkquake() {
     info "Compilation en cours (peut prendre quelques minutes)..."
     ninja -C build || {
         warn "Compilation échouée — fallback AUR vkquake-bin..."
-        yay -S --noconfirm vkquake-bin
+        yay -S --noconfirm vkquake
         cd ~
         return 0
     }
