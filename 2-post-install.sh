@@ -125,7 +125,7 @@ if command -v gearlever &>/dev/null; then
     success "Gear Lever déjà installé, skip."
 else
     info "Installation de Gear Lever (AUR)..."
-    yay -S --noconfirm gearlever
+    yay -S --noconfirm --nocheck gearlever
     success "Gear Lever installé"
 fi
 
