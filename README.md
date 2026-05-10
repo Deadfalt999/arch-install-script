@@ -151,6 +151,18 @@ curl -fsSL https://raw.githubusercontent.com/Deadfalt999/arch-install-script/mai
 | Dolphin | GameCube / Wii | Compiled from source | `~/.local/share/dolphin-source/` |
 | BGB | Game Boy (Windows) | `.exe` via Wine | `~/.local/share/bgb/` |
 
+### PC Ports — OpenMW & Daggerfall Unity (Script 2)
+
+> ⚠️ These ports require the original game files.
+
+| Port | Game | Method | Location |
+|---|---|---|---|
+| OpenMW | Morrowind (TES III) | tarball GitHub (`OpenMW/openmw`) | `~/.local/share/openmw-bin/` |
+| Daggerfall Unity | TES II: Daggerfall | zip GitHub (`Interkarma/daggerfall-unity`) | `~/.local/share/daggerfall-unity/` |
+
+> **OpenMW** — run `openmw-launcher` and point to your Morrowind files.
+> **Daggerfall Unity** — DOS game files are free on Steam or via the [cross-platform install guide](https://github.com/Interkarma/daggerfall-unity/wiki/Installing-Daggerfall-Unity-Cross-Platform). The Google Drive game data link is not automated — manual download required.
+
 ### PC Ports — HarbourMasters (Script 2)
 
 > ⚠️ Each port requires a legally obtained ROM placed in `~/Applications/` alongside the AppImage.

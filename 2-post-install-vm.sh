@@ -280,6 +280,86 @@ else
     fi
 fi
 
+# ── PC Ports — OpenMW & Daggerfall Unity ─────────────────
+banner "PC PORTS (NON-HARBOURMASTERS)"
+warn "⚠️  Ces ports nécessitent les fichiers du jeu original"
+
+# OpenMW — tarball officiel depuis GitHub (OpenMW/openmw)
+OPENMW_DIR="$HOME/.local/share/openmw-bin"
+info "Installation de OpenMW (Morrowind engine — tarball GitHub)..."
+if [[ -f "$OPENMW_DIR/openmw" ]]; then
+    success "OpenMW déjà installé, skip."
+else
+    OPENMW_URL=$(curl -fsSL "https://api.github.com/repos/OpenMW/openmw/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*Linux[^"]*\.tar\.gz"' \
+        | head -1 \
+        | cut -d'"' -f4)
+    if [[ -n "$OPENMW_URL" ]]; then
+        mkdir -p "$OPENMW_DIR"
+        curl -fsSL --progress-bar -o /tmp/openmw-linux.tar.gz "$OPENMW_URL"
+        tar -xzf /tmp/openmw-linux.tar.gz -C "$OPENMW_DIR" --strip-components=1
+        rm /tmp/openmw-linux.tar.gz
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$OPENMW_DIR/openmw-launcher" "$HOME/.local/bin/openmw-launcher"
+        ln -sf "$OPENMW_DIR/openmw" "$HOME/.local/bin/openmw"
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$HOME/.local/share/applications/openmw.desktop" << EOF
+[Desktop Entry]
+Name=OpenMW
+GenericName=Morrowind Engine
+Exec=$OPENMW_DIR/openmw-launcher
+Icon=openmw-launcher
+Terminal=false
+Type=Application
+Categories=Game;
+EOF
+        success "OpenMW installé — requiert les fichiers de Morrowind (TES III)"
+        warn "Lance openmw-launcher et pointe vers tes fichiers Morrowind"
+    else
+        warn "URL OpenMW introuvable — fallback pacman..."
+        sudo pacman -S --noconfirm openmw
+    fi
+fi
+
+# Daggerfall Unity — zip Linux officiel depuis GitHub (Interkarma/daggerfall-unity)
+DFU_DIR="$HOME/.local/share/daggerfall-unity"
+info "Installation de Daggerfall Unity (zip GitHub)..."
+if [[ -f "$DFU_DIR/DaggerfallUnity" ]]; then
+    success "Daggerfall Unity déjà installé, skip."
+else
+    DFU_URL=$(curl -fsSL "https://api.github.com/repos/Interkarma/daggerfall-unity/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*Linux[^"]*\.zip"' \
+        | head -1 \
+        | cut -d'"' -f4)
+    if [[ -n "$DFU_URL" ]]; then
+        mkdir -p "$DFU_DIR"
+        curl -fsSL --progress-bar -o /tmp/daggerfall-unity-linux.zip "$DFU_URL"
+        unzip -o /tmp/daggerfall-unity-linux.zip -d "$DFU_DIR"
+        rm /tmp/daggerfall-unity-linux.zip
+        chmod +x "$DFU_DIR/DaggerfallUnity" 2>/dev/null || true
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$DFU_DIR/DaggerfallUnity" "$HOME/.local/bin/daggerfall-unity"
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$HOME/.local/share/applications/daggerfall-unity.desktop" << EOF
+[Desktop Entry]
+Name=Daggerfall Unity
+GenericName=TES II: Daggerfall
+Exec=$DFU_DIR/DaggerfallUnity
+Icon=daggerfall
+Terminal=false
+Type=Application
+Categories=Game;
+EOF
+        success "Daggerfall Unity installé dans $DFU_DIR"
+        warn "Les fichiers DOS Daggerfall sont gratuits sur Steam ou ici :"
+        warn "https://github.com/Interkarma/daggerfall-unity/wiki/Installing-Daggerfall-Unity-Cross-Platform"
+    else
+        warn "URL Daggerfall Unity introuvable — fallback AUR..."
+        yay -S --noconfirm daggerfall-unity-bin
+    fi
+fi
+
+
 # ── HarbourMasters PC Ports (AppImages) ──────────────────
 banner "HARBOURMASTERS PC PORTS"
 warn "⚠️  Ces ports nécessitent un ROM légalement obtenu placé dans ~/Applications/"
