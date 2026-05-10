@@ -181,89 +181,70 @@ download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         |
 download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation
 
 
-# ── Dolphin (GameCube / Wii) — compilé depuis source ────
-banner "DOLPHIN — COMPILATION DEPUIS SOURCE"
+# ── Dolphin (GameCube / Wii) — compilation via Docker ────
+banner "DOLPHIN — COMPILATION VIA DOCKER (Ubuntu 24.04 + GCC 13)"
 
-DOLPHIN_DIR="$HOME/.local/share/dolphin-source"
-DOLPHIN_BIN="$DOLPHIN_DIR/build/Binaries/dolphin-emu"
+DOLPHIN_DIR="$HOME/.local/share/dolphin-bin"
+DOLPHIN_BIN="$DOLPHIN_DIR/dolphin-emu"
 
 if [[ -f "$DOLPHIN_BIN" ]]; then
-    success "Dolphin déjà compilé, skip."
+    success "Dolphin déjà installé, skip."
 else
-    info "Installation des dépendances de compilation Dolphin..."
-    sudo pacman -S --noconfirm \
-        cmake ninja git gcc pkg-config \
-        mesa mesa-libgl libgl \
-        libx11 libxrandr libxi libxext libxfixes libxxf86vm \
-        sdl2 \
-        sfml miniupnpc \
-        mbedtls curl \
-        hidapi bluez-libs \
-        vulkan-headers vulkan-icd-loader \
-        wayland wayland-protocols \
-        qt6-base qt6-svg qt6-multimedia \
-        ffmpeg libpng \
-        alsa-lib libusb \
-        fmt lzo zstd xz \
-        enet pugixml xxhash \
-        glslang spirv-cross \
-        openal \
-        libspng \
-        zip unzip
-    success "Dépendances de compilation installées"
+    info "Installation de Docker..."
+    sudo pacman -S --noconfirm docker
+    sudo systemctl start docker
 
-    info "Clonage de Dolphin depuis GitHub..."
-    git clone https://github.com/dolphin-emu/dolphin.git "$DOLPHIN_DIR" || {
-        warn "Clonage échoué — fallback dolphin-emu pacman"
-        sudo pacman -S --noconfirm dolphin-emu
-        return 0
-    }
+    info "Compilation de Dolphin dans Ubuntu 24.04 (GCC 13, compatible C++20)..."
+    sudo docker run --name dolphin-build ubuntu:24.04 bash -c "
+        export DEBIAN_FRONTEND=noninteractive &&
+        apt-get update -qq &&
+        apt-get install -y -qq \
+            cmake ninja-build git gcc g++ pkg-config \
+            libgl1-mesa-dev libx11-dev libxrandr-dev \
+            libxi-dev libxext-dev libxfixes-dev libxxf86vm-dev \
+            libsdl2-dev libevdev-dev \
+            libsfml-dev libminiupnpc-dev \
+            libmbedtls-dev libcurl4-openssl-dev \
+            libhidapi-dev libbluetooth-dev \
+            libvulkan-dev \
+            libwayland-dev wayland-protocols \
+            qt6-base-dev libqt6svg6-dev qt6-multimedia-dev \
+            libavcodec-dev libavformat-dev libswscale-dev libpng-dev \
+            libasound2-dev libusb-1.0-0-dev \
+            libfmt-dev liblzo2-dev libzstd-dev \
+            libenet-dev libpugixml-dev libxxhash-dev \
+            glslang-tools libspirv-cross-c-shared-dev \
+            libopenal-dev libspng-dev \
+            zip unzip &&
+        git clone --depth=1 https://github.com/dolphin-emu/dolphin.git /dolphin &&
+        cd /dolphin &&
+        git -c submodule.'Externals/Qt'.update=none \
+            -c submodule.'Externals/FFmpeg-bin'.update=none \
+            -c submodule.'Externals/libadrenotools'.update=none \
+            submodule update --init --recursive &&
+        mkdir build && cd build &&
+        cmake .. -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLINUX_LOCAL_DEV=true \
+            -DUSE_SYSTEM_LIBS=AUTO \
+            -DUSE_SYSTEM_MINIZIP_NG=OFF \
+            -DUSE_SYSTEM_SFML=OFF \
+            -DUSE_SYSTEM_MBEDTLS=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 &&
+        ninja -j\$(nproc)
+    " && {
+        info "Extraction des binaires compilés..."
+        mkdir -p "$DOLPHIN_DIR"
+        sudo docker cp dolphin-build:/dolphin/build/Binaries/dolphin-emu "$DOLPHIN_DIR/"
+        sudo docker cp dolphin-build:/dolphin/build/Binaries/dolphin-tool "$DOLPHIN_DIR/" 2>/dev/null || true
 
-    cd "$DOLPHIN_DIR"
+        info "Création du symlink..."
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$DOLPHIN_BIN" "$HOME/.local/bin/dolphin-emu"
 
-    info "Initialisation des submodules (sans Qt/FFmpeg-bin inutiles)..."
-    git -c submodule."Externals/Qt".update=none \
-        -c submodule."Externals/FFmpeg-bin".update=none \
-        -c submodule."Externals/libadrenotools".update=none \
-        submodule update --init --recursive || {
-        warn "Submodules échoués — fallback dolphin-emu pacman"
-        sudo pacman -S --noconfirm dolphin-emu
-        cd ~
-        return 0
-    }
-
-    info "Configuration CMake (Release + optimisé pour ce CPU)..."
-    mkdir -p build && cd build
-    cmake .. -GNinja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DLINUX_LOCAL_DEV=true \
-        -DENABLE_LTO=ON \
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-        -DCMAKE_CXX_FLAGS="-march=native" \
-        -DCMAKE_C_FLAGS="-march=native" || {
-        warn "CMake échoué — fallback dolphin-emu pacman"
-        sudo pacman -S --noconfirm dolphin-emu
-        cd ~
-        return 0
-    }
-
-    info "Compilation en cours (peut prendre 10-20 minutes)..."
-    ninja -j$(nproc) || {
-        warn "Compilation échouée — fallback dolphin-emu pacman"
-        sudo pacman -S --noconfirm dolphin-emu
-        cd ~
-        return 0
-    }
-
-    cd ~
-
-    info "Création du symlink..."
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$DOLPHIN_BIN" "$HOME/.local/bin/dolphin-emu"
-
-    info "Création du raccourci bureau..."
-    mkdir -p "$HOME/.local/share/applications"
-    cat > "$HOME/.local/share/applications/dolphin-emu.desktop" << EOF
+        info "Création du raccourci bureau..."
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$HOME/.local/share/applications/dolphin-emu.desktop" << EOF
 [Desktop Entry]
 Name=Dolphin Emulator
 GenericName=GameCube / Wii Emulator
@@ -273,8 +254,17 @@ Terminal=false
 Type=Application
 Categories=Game;Emulator;
 EOF
+        success "Dolphin compilé et installé via Docker (Ubuntu 24.04 GCC 13)"
+    } || {
+        warn "Compilation Dolphin échouée — fallback dolphin-emu pacman..."
+        sudo pacman -S --noconfirm dolphin-emu
+    }
 
-    success "Dolphin compilé et installé depuis source — optimisé pour ce CPU"
+    info "Nettoyage Docker (conteneur + image)..."
+    sudo docker rm dolphin-build 2>/dev/null || true
+    sudo docker rmi ubuntu:24.04 2>/dev/null || true
+    sudo systemctl stop docker
+    success "Docker nettoyé"
 fi
 
 
