@@ -96,11 +96,11 @@ fi
 #  GEAR LEVER (GESTIONNAIRE D'APPIMAGE)
 # ══════════════════════════════════════════════════════════
 banner "GEAR LEVER — GESTIONNAIRE D'APPIMAGE"
-if command -v gear-lever &>/dev/null; then
+if command -v gearlever &>/dev/null; then
     success "Gear Lever déjà installé, skip."
 else
     info "Installation de Gear Lever (AUR)..."
-    yay -S --noconfirm gear-lever
+    yay -S --noconfirm gearlever
     success "Gear Lever installé"
 fi
 
@@ -117,6 +117,7 @@ download_appimage() {
     local repo="$1"
     local pattern="$2"
     local name="$3"
+    local appname="${name%.AppImage}"
     info "Téléchargement de $name (AppImage)..."
     if [[ -f "$APPDIR/$name" ]]; then
         success "$name déjà présent, skip."
@@ -134,8 +135,20 @@ download_appimage() {
     fi
     curl -fsSL --progress-bar -o "$APPDIR/$name" "$url"
     chmod +x "$APPDIR/$name"
-    success "$name installé dans $APPDIR/"
+    # Créer un .desktop pour l'intégration KDE
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/${appname}.desktop" << EOF
+[Desktop Entry]
+Name=$appname
+Exec=$APPDIR/$name
+Icon=$appname
+Terminal=false
+Type=Application
+Categories=Game;
+EOF
+    success "$name installé dans $APPDIR/ — raccourci KDE créé"
 }
+
 
 # ── AppImages — téléchargées depuis GitHub ───────────────
 # RetroArch (nightly officiel)
@@ -154,8 +167,25 @@ download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     ||
 if [[ -f "$APPDIR/mGBA.AppImage" ]]; then
     success "mGBA déjà présent, skip."
 else
-    download_appimage "mgba-emu/mgba" "AppImage" "mGBA.AppImage" || sudo pacman -S --noconfirm mgba-qt
+    info "Téléchargement de mGBA (AppImage officielle — mgba.io)..."
+    curl -fsSL --progress-bar \
+        -o "$APPDIR/mGBA.AppImage" \
+        "https://s3.amazonaws.com/mgba/mGBA-build-latest-appimage-x64.appimage"
+    chmod +x "$APPDIR/mGBA.AppImage"
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/mGBA.desktop" << EOF
+[Desktop Entry]
+Name=mGBA
+GenericName=Game Boy / GBA Emulator
+Exec=$APPDIR/mGBA.AppImage
+Icon=mgba
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+EOF
+    success "mGBA AppImage installé"
 fi
+
 download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || yay -S --noconfirm cemu-bin
 download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
 
