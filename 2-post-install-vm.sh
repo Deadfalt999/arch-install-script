@@ -280,6 +280,82 @@ else
     fi
 fi
 
+# ── HarbourMasters PC Ports (AppImages) ──────────────────
+banner "HARBOURMASTERS PC PORTS"
+warn "⚠️  Ces ports nécessitent un ROM légalement obtenu placé dans ~/Applications/"
+
+# Ship of Harkinian — Zelda: Ocarina of Time
+if [[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]]; then
+    success "Ship of Harkinian déjà présent, skip."
+else
+    info "Téléchargement de Ship of Harkinian (Zelda: OoT)..."
+    download_appimage "HarbourMasters/Shipwright" "AppImage" "ShipOfHarkinian.AppImage" \
+        || warn "Ship of Harkinian introuvable — télécharge manuellement depuis github.com/HarbourMasters/Shipwright"
+fi
+
+# 2 Ship 2 Harkinian — Zelda: Majora's Mask
+if [[ -f "$APPDIR/2Ship2Harkinian.AppImage" ]]; then
+    success "2 Ship 2 Harkinian déjà présent, skip."
+else
+    info "Téléchargement de 2 Ship 2 Harkinian (Zelda: MM)..."
+    download_appimage "HarbourMasters/2ship2harkinian" "AppImage" "2Ship2Harkinian.AppImage" \
+        || warn "2 Ship 2 Harkinian introuvable — télécharge manuellement depuis github.com/HarbourMasters/2ship2harkinian"
+fi
+
+# Starship — Star Fox 64
+if [[ -f "$APPDIR/Starship.AppImage" ]]; then
+    success "Starship déjà présent, skip."
+else
+    info "Téléchargement de Starship (Star Fox 64)..."
+    download_appimage "HarbourMasters/Starship" "AppImage" "Starship.AppImage" \
+        || warn "Starship introuvable — télécharge manuellement depuis github.com/HarbourMasters/Starship"
+fi
+
+# SpaghettiKart — Mario Kart 64
+if [[ -f "$APPDIR/SpaghettiKart.AppImage" ]]; then
+    success "SpaghettiKart déjà présent, skip."
+else
+    info "Téléchargement de SpaghettiKart (Mario Kart 64)..."
+    download_appimage "HarbourMasters/SpaghettiKart" "AppImage" "SpaghettiKart.AppImage" \
+        || warn "SpaghettiKart introuvable — télécharge manuellement depuis github.com/HarbourMasters/SpaghettiKart"
+fi
+success "Ports HarbourMasters installés dans $APPDIR"
+
+
+# Ghostship — Super Mario 64 (zip Linux, pas AppImage)
+banner "GHOSTSHIP — SUPER MARIO 64 (HarbourMasters)"
+warn "⚠️  Nécessite une ROM Super Mario 64 US légalement obtenue"
+
+GHOSTSHIP_DIR="$HOME/.local/share/ghostship"
+if [[ -f "$APPDIR/Ghostship.AppImage" ]]; then
+    success "Ghostship déjà installé, skip."
+else
+    info "Récupération de la dernière version de Ghostship..."
+    GHOSTSHIP_URL=$(curl -fsSL "https://api.github.com/repos/HarbourMasters/Ghostship/releases/latest" \
+        | grep -o '"browser_download_url": *"[^"]*Linux[^"]*\.zip"' \
+        | head -1 \
+        | cut -d'"' -f4)
+    if [[ -n "$GHOSTSHIP_URL" ]]; then
+        mkdir -p "$GHOSTSHIP_DIR"
+        curl -fsSL --progress-bar -o /tmp/ghostship-linux.zip "$GHOSTSHIP_URL"
+        unzip -o /tmp/ghostship-linux.zip -d "$GHOSTSHIP_DIR"
+        rm /tmp/ghostship-linux.zip
+        # L'AppImage est dans le zip
+        APPIMAGE=$(find "$GHOSTSHIP_DIR" -name "*.AppImage" | head -1)
+        if [[ -n "$APPIMAGE" ]]; then
+            chmod +x "$APPIMAGE"
+            cp "$APPIMAGE" "$APPDIR/Ghostship.AppImage"
+            rm -rf "$GHOSTSHIP_DIR"
+            success "Ghostship AppImage installé dans $APPDIR"
+        else
+            warn "AppImage introuvable dans le zip Ghostship"
+        fi
+    else
+        warn "URL Ghostship introuvable — télécharge manuellement depuis github.com/HarbourMasters/Ghostship"
+    fi
+fi
+
+
 # ── UZDoom (Doom engine) — AppImage officielle GitHub ────
 banner "UZDOOM — APPIMAGE OFFICIELLE"
 
@@ -611,14 +687,33 @@ echo "║    UZDoom            → Doom engine (ZDoom fork)             ║"
 echo "║    Yamagi Quake II   → Quake II (AppImage non-officielle)   ║"
 echo "║    Ryujinx Canary    → Nintendo Switch                      ║"
 echo "║                                                              ║"
-echo "║  Émulateurs — Compilés / Système                             ║"
-echo "║    Dolphin           → GameCube / Wii (compilé source)      ║"
-echo "║    vkQuake           → Quake 1 Vulkan (compilé source)      ║"
-echo "║    ECWolf            → Wolfenstein 3D (Docker/source)       ║"
-echo "║    BGB               → Game Boy (Windows .exe via Wine)     ║"
+echo "║  PC Ports HarbourMasters (~/Applications/) ⚠️ ROM requise   ║"
+echo "║    Ship of Harkinian → Zelda: Ocarina of Time               ║"
+echo "║    2 Ship 2 Harkinian→ Zelda: Majora's Mask                 ║"
+echo "║    Starship           → Star Fox 64                         ║"
+echo "║    SpaghettiKart      → Mario Kart 64                       ║"
+echo "║    Ghostship          → Super Mario 64                      ║"
+echo "║                                                              ║"
+echo "║  Émulateurs — Packages système                               ║"
+echo "║    Dolphin            → GameCube / Wii (compilé source)     ║"
+echo "║    BGB                → Game Boy (Windows .exe via Wine)    ║"
+echo "║                                                              ║"
+echo "║  Source Ports                                                ║"
+echo "║    vkQuake            → Quake 1 Vulkan (compilé source)     ║"
+echo "║    UZDoom             → Doom engine (AppImage)              ║"
+echo "║    Yamagi Quake II    → Quake II (AppImage)                 ║"
+echo "║    ECWolf             → Wolfenstein 3D (Docker/source)      ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  GPU — envycontrol (laptop uniquement) :                    ║"
+echo "║    envycontrol --query           → mode GPU actuel          ║"
+echo "║    sudo envycontrol -s hybrid    → AMD + NVIDIA à la demande║"
+echo "║    sudo envycontrol -s nvidia    → NVIDIA uniquement        ║"
+echo "║    sudo envycontrol -s integrated→ AMD uniquement (batterie)║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  STEAM — lancer un jeu sur NVIDIA :                         ║"
+echo "║    Propriétés du jeu → Options de lancement :               ║"
+echo "║    prime-run %command%                                      ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-
 # ── Déconnexion ──────────────────────────────────
-echo -e "${YELLOW}⚠️  Déconnecte-toi et reconnecte-toi pour appliquer le thème et la langue.${NC}"
