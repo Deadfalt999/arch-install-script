@@ -578,11 +578,9 @@ fi
 banner "VKQUAKE — COMPILATION DEPUIS SOURCE"
 
 VKQUAKE_DIR="$HOME/.local/share/vkquake-source"
-VKQUAKE_BIN="$VKQUAKE_DIR/Quake/vkquake"
+VKQUAKE_BIN="$VKQUAKE_DIR/Quake/build/vkquake"
 
-if [[ -f "$VKQUAKE_BIN" ]]; then
-    success "VkQuake déjà compilé, skip."
-else
+_build_vkquake() {
     info "Installation des dépendances de compilation VkQuake..."
     sudo pacman -S --noconfirm \
         git meson ninja pkg-config gcc \
@@ -594,16 +592,17 @@ else
 
     info "Clonage de VkQuake depuis GitHub..."
     git clone https://github.com/Novum/vkQuake.git "$VKQUAKE_DIR" || {
-        warn "Clonage échoué — fallback AUR vkquake..."
+        warn "Clonage échoué — fallback AUR vkquake-bin..."
         yay -S --noconfirm vkquake-bin
         return 0
     }
 
+    # meson setup doit être lancé depuis le dossier Quake/
     cd "$VKQUAKE_DIR/Quake"
 
-    info "Configuration Meson..."
+    info "Configuration Meson (depuis $VKQUAKE_DIR/Quake)..."
     meson setup build --buildtype=release || {
-        warn "Meson échoué — fallback AUR vkquake..."
+        warn "Meson échoué — fallback AUR vkquake-bin..."
         yay -S --noconfirm vkquake-bin
         cd ~
         return 0
@@ -611,22 +610,21 @@ else
 
     info "Compilation en cours (peut prendre quelques minutes)..."
     ninja -C build || {
-        warn "Compilation échouée — fallback AUR vkquake..."
+        warn "Compilation échouée — fallback AUR vkquake-bin..."
         yay -S --noconfirm vkquake-bin
         cd ~
         return 0
     }
 
-    # Le binaire est dans build/
     mkdir -p "$HOME/.local/bin"
-    ln -sf "$VKQUAKE_DIR/Quake/build/vkquake" "$HOME/.local/bin/vkquake"
+    ln -sf "$VKQUAKE_BIN" "$HOME/.local/bin/vkquake"
 
     mkdir -p "$HOME/.local/share/applications"
     cat > "$HOME/.local/share/applications/vkquake.desktop" << EOF
 [Desktop Entry]
 Name=vkQuake
 GenericName=Quake (Vulkan)
-Exec=$VKQUAKE_DIR/Quake/build/vkquake
+Exec=$VKQUAKE_BIN
 Icon=quake
 Terminal=false
 Type=Application
@@ -635,7 +633,15 @@ EOF
 
     cd ~
     success "VkQuake compilé et installé depuis source (Vulkan)"
+}
+
+if [[ -f "$VKQUAKE_BIN" ]]; then
+    success "VkQuake déjà compilé, skip."
+else
+    _build_vkquake
 fi
+unset -f _build_vkquake
+
 
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
@@ -796,8 +802,6 @@ echo "║    Cemu              → Wii U                                ║"
 echo "║    DuckStation       → PlayStation 1                        ║"
 echo "║    PPSSPP            → PSP                                  ║"
 echo "║    melonDS           → Nintendo DS                          ║"
-echo "║    UZDoom            → Doom engine (ZDoom fork)             ║"
-echo "║    Yamagi Quake II   → Quake II (AppImage non-officielle)   ║"
 echo "║    Ryujinx Canary    → Nintendo Switch                      ║"
 echo "║                                                              ║"
 echo "║  PC Ports HarbourMasters (~/Applications/) ⚠️ ROM requise   ║"
