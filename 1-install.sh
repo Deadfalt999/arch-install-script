@@ -57,7 +57,8 @@ echo ""
 _AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | grep "disk" | head -1 | awk '{print "/dev/"$1}')
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
-read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK || true
+_DISK=""
+read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
 
 # Adapter les noms de partitions selon le type de disque
@@ -70,23 +71,28 @@ else
 fi
 
 # Hostname
-read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME || true
+_HOSTNAME=""
+read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
 HOSTNAME="${_HOSTNAME:-arch-vm}"
 
 # Username
-read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME || true
+_USERNAME=""
+read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
 USERNAME="${_USERNAME:-Admin}"
 
 # Timezone
-read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE || true
+_TIMEZONE=""
+read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
 TIMEZONE="${_TIMEZONE:-Europe/Paris}"
 
 # Locale
-read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE || true
+_LOCALE=""
+read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
 LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 
 # Keymap
-read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP || true
+_KEYMAP=""
+read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
 KEYMAP="${_KEYMAP:-fr}"
 
 echo ""
@@ -175,7 +181,7 @@ success "Horloge synchronisée"
 # ══════════════════════════════════════════════════════════
 banner "PARTITIONNEMENT"
 info "Effacement de la table de partitions sur $DISK..."
-sgdisk -Z "$DISK" &>/dev/null || true
+sgdisk -Z "$DISK" &>/dev/null
 
 info "Création des partitions GPT..."
 sgdisk -n 1:0:+512M  -t 1:ef00 -c 1:"EFI"  "$DISK"
@@ -534,7 +540,8 @@ echo ""
 _AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | grep "disk" | head -1 | awk '{print "/dev/"$1}')
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
-read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK || true
+_DISK=""
+read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
 
 # Adapter les noms de partitions selon le type de disque
@@ -547,23 +554,28 @@ else
 fi
 
 # Hostname
-read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME || true
+_HOSTNAME=""
+read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
 HOSTNAME="${_HOSTNAME:-arch-vm}"
 
 # Username
-read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME || true
+_USERNAME=""
+read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
 USERNAME="${_USERNAME:-Admin}"
 
 # Timezone
-read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE || true
+_TIMEZONE=""
+read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
 TIMEZONE="${_TIMEZONE:-Europe/Paris}"
 
 # Locale
-read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE || true
+_LOCALE=""
+read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
 LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 
 # Keymap
-read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP || true
+_KEYMAP=""
+read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
 KEYMAP="${_KEYMAP:-fr}"
 
 echo ""
@@ -597,9 +609,9 @@ info "Connexion internet (Ethernet)..."
 # Vérifier que l'interface Ethernet est bien up
 ETH_IF=$(ip link | awk -F: '/^[0-9]+: e/{print $2; exit}' | tr -d ' ')
 if [[ -n "$ETH_IF" ]]; then
-    ip link set "$ETH_IF" up 2>/dev/null || true
+    ip link set "$ETH_IF" up 2>/dev/null
     # Demander une adresse DHCP si pas encore d'IP
-    ip addr show "$ETH_IF" | grep -q "inet " || dhcpcd "$ETH_IF" &>/dev/null || true
+    ip addr show "$ETH_IF" | grep -q "inet " || dhcpcd "$ETH_IF" &>/dev/null
 fi
 ping -c 1 -W 5 archlinux.org &>/dev/null \
     || error "Pas de connexion internet.\n  → Vérifie que le câble Ethernet est bien branché.\n  → Interface détectée : ${ETH_IF:-aucune}\n  → Essaie manuellement : ip link set \$ETH_IF up && dhcpcd \$ETH_IF"
@@ -673,7 +685,7 @@ success "Horloge synchronisée"
 # ══════════════════════════════════════════════════════════
 banner "PARTITIONNEMENT"
 info "Effacement de la table de partitions sur $DISK..."
-sgdisk -Z "$DISK" &>/dev/null || true
+sgdisk -Z "$DISK" &>/dev/null
 
 info "Création des partitions GPT..."
 sgdisk -n 1:0:+512M  -t 1:ef00 -c 1:"EFI"  "$DISK"
