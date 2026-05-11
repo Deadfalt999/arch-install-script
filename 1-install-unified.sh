@@ -333,8 +333,9 @@ reflector --country France --age 12 --protocol https --sort rate \
     --timeout 5 --latest 20 \
     --save /etc/pacman.d/mirrorlist &>/dev/null \
     || warn "reflector échoué — miroirs par défaut conservés"
-SELECTED_MIRROR=$(grep "^Server" /etc/pacman.d/mirrorlist | head -1 | sed 's/Server = //')
-success "Miroir sélectionné : ${GREEN}${SELECTED_MIRROR}${NC}"
+SELECTED_MIRROR=$(grep "^Server" /etc/pacman.d/mirrorlist 2>/dev/null | head -1 | sed 's/Server = //') || true
+SELECTED_MIRROR="${SELECTED_MIRROR:-miroir par défaut}"
+success "Miroir : ${SELECTED_MIRROR}"
 
 # ══════════════════════════════════════════════════════════
 #  PACSTRAP — BASE SYSTÈME
