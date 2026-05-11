@@ -162,7 +162,6 @@ download_appimage() {
     local repo="$1"
     local pattern="$2"
     local name="$3"
-    local appname="${name%.AppImage}"
     info "Téléchargement de $name (AppImage)..."
     if [[ -f "$APPDIR/$name" ]]; then
         success "$name déjà présent, skip."
@@ -180,34 +179,20 @@ download_appimage() {
     fi
     curl -fsSL --progress-bar -o "$APPDIR/$name" "$url"
     chmod +x "$APPDIR/$name"
-    # Créer un .desktop pour l'intégration KDE
-    mkdir -p "$HOME/.local/share/applications"
-    cat > "$HOME/.local/share/applications/${appname}.desktop" << EOF
-[Desktop Entry]
-Name=$appname
-Exec=$APPDIR/$name
-Icon=$appname
-Terminal=false
-Type=Application
-Categories=Game;
-EOF
-    success "$name installé dans $APPDIR/ — raccourci KDE créé"
+    success "$name installé dans $APPDIR/"
 }
 
 # ── AppImages — téléchargées depuis GitHub ───────────────
 # RetroArch (nightly officiel)
-info "Téléchargement de RetroArch (AppImage nightly)..."
 if [[ -f "$APPDIR/RetroArch.AppImage" ]]; then
     success "RetroArch déjà présent, skip."
 else
-    curl -fsSL --progress-bar \
-        -o "$APPDIR/RetroArch.AppImage" \
-        "https://github.com/hizzlekizzle/RetroArch-AppImage/releases/download/Linux_LTS_Nightlies/RetroArch-Linux-x86_64-Nightly.AppImage"
-    chmod +x "$APPDIR/RetroArch.AppImage"
-    success "RetroArch AppImage installé"
+    info "Téléchargement de RetroArch (AppImage nightly)..."
+    download_appimage "hizzlekizzle/RetroArch-AppImage" "Nightly.AppImage" "RetroArch.AppImage" \
+        || warn "RetroArch introuvable — télécharge manuellement depuis buildbot.libretro.com"
 fi
 
-download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
+download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2-qt
 if [[ -f "$APPDIR/mGBA.AppImage" ]]; then
     success "mGBA déjà présent, skip."
 else
@@ -230,7 +215,7 @@ EOF
     success "mGBA AppImage installé"
 fi
 download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || yay -S --noconfirm cemu-bin
-download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
+download_appimage "stenzek/duckstation"   "x86_64.AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
 
 
 # ── Dolphin (GameCube / Wii) — compilation via Docker ────
@@ -317,6 +302,19 @@ EOF
     } || {
         warn "Compilation Dolphin échouée — fallback dolphin-emu pacman..."
         sudo pacman -S --noconfirm dolphin-emu
+        # Supprimer le .desktop système pour éviter le doublon
+        sudo rm -f /usr/share/applications/dolphin-emu.desktop 2>/dev/null || true
+        mkdir -p "$HOME/.local/share/applications"
+        cat > "$HOME/.local/share/applications/Dolphin.desktop" << EOF
+[Desktop Entry]
+Name=Dolphin
+GenericName=GameCube / Wii Emulator
+Exec=dolphin-emu
+Icon=$ICONDIR/dolphin.png
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+EOF
     }
 
     info "Nettoyage Docker (conteneur + image)..."
@@ -356,7 +354,7 @@ else
 fi
 
 # ── AppImage — PPSSPP (PSP) ───────────────────────────────
-download_appimage "hrydgard/ppsspp" "AppImage" "PPSSPP.AppImage" || sudo pacman -S --noconfirm ppsspp
+download_appimage "hrydgard/ppsspp" "anylinux-x86_64.AppImage" "PPSSPP.AppImage" || sudo pacman -S --noconfirm ppsspp
 
 # ── AppImage — Ryubing/Canary (Nintendo Switch) ──────────
 info "Téléchargement de Ryujinx Canary (AppImage officielle Ryubing)..."
@@ -398,15 +396,25 @@ else
         curl -fsSL --progress-bar -o /tmp/openmw-linux.tar.gz "$OPENMW_URL"
         tar -xzf /tmp/openmw-linux.tar.gz -C "$OPENMW_DIR" --strip-components=1
         rm /tmp/openmw-linux.tar.gz
+        # Trouver le binaire réel après extraction
+        OPENMW_BIN=$(find "$OPENMW_DIR" -name "openmw-launcher" -type f 2>/dev/null | head -1)
+        OPENMW_EXE=$(find "$OPENMW_DIR" -name "openmw" -type f 2>/dev/null | head -1)
+        # Fallback si find ne trouve rien
+        OPENMW_BIN="${OPENMW_BIN:-$OPENMW_DIR/openmw-launcher}"
+        OPENMW_EXE="${OPENMW_EXE:-$OPENMW_DIR/openmw}"
+        chmod +x "$OPENMW_BIN" 2>/dev/null || true
+        chmod +x "$OPENMW_EXE" 2>/dev/null || true
         mkdir -p "$HOME/.local/bin"
-        ln -sf "$OPENMW_DIR/openmw-launcher" "$HOME/.local/bin/openmw-launcher"
-        ln -sf "$OPENMW_DIR/openmw" "$HOME/.local/bin/openmw"
+        [[ -f "$OPENMW_BIN" ]] && ln -sf "$OPENMW_BIN" "$HOME/.local/bin/openmw-launcher" || true
+        [[ -f "$OPENMW_EXE" ]] && ln -sf "$OPENMW_EXE" "$HOME/.local/bin/openmw" || true
         mkdir -p "$HOME/.local/share/applications"
+        local _EXEC="${OPENMW_BIN}"
+        [[ -f "$OPENMW_BIN" ]] || _EXEC="openmw-launcher"
         cat > "$HOME/.local/share/applications/openmw.desktop" << EOF
 [Desktop Entry]
 Name=OpenMW
 GenericName=Morrowind Engine
-Exec=$OPENMW_DIR/openmw-launcher
+Exec=$_EXEC
 Icon=openmw-launcher
 Terminal=false
 Type=Application
@@ -440,16 +448,19 @@ else
         curl -fsSL --progress-bar -o /tmp/daggerfall-unity-linux.zip "$DFU_URL"
         unzip -o /tmp/daggerfall-unity-linux.zip -d "$DFU_DIR"
         rm /tmp/daggerfall-unity-linux.zip
-        chmod +x "$DFU_DIR/DaggerfallUnity" 2>/dev/null || true
+        # Trouver le binaire réel après extraction (peut être dans un sous-dossier)
+        DFU_BIN=$(find "$DFU_DIR" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
+        DFU_BIN="${DFU_BIN:-$DFU_DIR/DaggerfallUnity}"
+        chmod +x "$DFU_BIN" 2>/dev/null || true
         mkdir -p "$HOME/.local/bin"
-        ln -sf "$DFU_DIR/DaggerfallUnity" "$HOME/.local/bin/daggerfall-unity"
+        ln -sf "$DFU_BIN" "$HOME/.local/bin/daggerfall-unity"
         mkdir -p "$HOME/.local/share/applications"
         cat > "$HOME/.local/share/applications/daggerfall-unity.desktop" << EOF
 [Desktop Entry]
 Name=Daggerfall Unity
 GenericName=TES II: Daggerfall
-Exec=$DFU_DIR/DaggerfallUnity
-Icon=daggerfall
+Exec=$DFU_BIN
+Icon=applications-games
 Terminal=false
 Type=Application
 Categories=Game;
@@ -474,7 +485,7 @@ if [[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]]; then
     success "Ship of Harkinian déjà présent, skip."
 else
     info "Téléchargement de Ship of Harkinian (Zelda: OoT)..."
-    download_appimage "HarbourMasters/Shipwright" "AppImage" "ShipOfHarkinian.AppImage" \
+    download_appimage "HarbourMasters/Shipwright" "Linux" "ShipOfHarkinian.AppImage" \
         || warn "Ship of Harkinian introuvable — télécharge manuellement depuis github.com/HarbourMasters/Shipwright"
 fi
 
@@ -483,7 +494,7 @@ if [[ -f "$APPDIR/2Ship2Harkinian.AppImage" ]]; then
     success "2 Ship 2 Harkinian déjà présent, skip."
 else
     info "Téléchargement de 2 Ship 2 Harkinian (Zelda: MM)..."
-    download_appimage "HarbourMasters/2ship2harkinian" "AppImage" "2Ship2Harkinian.AppImage" \
+    download_appimage "HarbourMasters/2ship2harkinian" "Linux" "2Ship2Harkinian.AppImage" \
         || warn "2 Ship 2 Harkinian introuvable — télécharge manuellement depuis github.com/HarbourMasters/2ship2harkinian"
 fi
 
@@ -492,7 +503,7 @@ if [[ -f "$APPDIR/Starship.AppImage" ]]; then
     success "Starship déjà présent, skip."
 else
     info "Téléchargement de Starship (Star Fox 64)..."
-    download_appimage "HarbourMasters/Starship" "AppImage" "Starship.AppImage" \
+    download_appimage "HarbourMasters/Starship" "Linux" "Starship.AppImage" \
         || warn "Starship introuvable — télécharge manuellement depuis github.com/HarbourMasters/Starship"
 fi
 
@@ -501,7 +512,7 @@ if [[ -f "$APPDIR/SpaghettiKart.AppImage" ]]; then
     success "SpaghettiKart déjà présent, skip."
 else
     info "Téléchargement de SpaghettiKart (Mario Kart 64)..."
-    download_appimage "HarbourMasters/SpaghettiKart" "AppImage" "SpaghettiKart.AppImage" \
+    download_appimage "HarbourMasters/SpaghettiKart" "Linux" "SpaghettiKart.AppImage" \
         || warn "SpaghettiKart introuvable — télécharge manuellement depuis github.com/HarbourMasters/SpaghettiKart"
 fi
 success "Ports HarbourMasters installés dans $APPDIR"
@@ -524,8 +535,8 @@ else
         curl -fsSL --progress-bar -o /tmp/ghostship-linux.zip "$GHOSTSHIP_URL"
         unzip -o /tmp/ghostship-linux.zip -d "$GHOSTSHIP_DIR"
         rm /tmp/ghostship-linux.zip
-        # L'AppImage est dans le zip
-        APPIMAGE=$(find "$GHOSTSHIP_DIR" -name "*.AppImage" | head -1)
+        # L'AppImage peut être en minuscules selon la version
+        APPIMAGE=$(find "$GHOSTSHIP_DIR" -iname "*.appimage" | head -1)
         if [[ -n "$APPIMAGE" ]]; then
             chmod +x "$APPIMAGE"
             cp "$APPIMAGE" "$APPDIR/Ghostship.AppImage"
@@ -554,25 +565,37 @@ _fetch_icon() {
 }
 
 info "Téléchargement des icônes..."
-_fetch_icon "retroarch"      "https://raw.githubusercontent.com/libretro/retroarch-assets/master/pkg/osx/retroarch.png"
+_fetch_icon "retroarch"      "https://raw.githubusercontent.com/libretro/retroarch-assets/master/xmb/monochrome/png/retroarch.png"
 _fetch_icon "mgba"           "https://raw.githubusercontent.com/mgba-emu/mgba/master/res/mgba-256.png"
 _fetch_icon "melonds"        "https://raw.githubusercontent.com/melonDS-emu/melonDS/master/res/melon_256x256.png"
 _fetch_icon "ryujinx"        "https://raw.githubusercontent.com/Ryubing/Canary/master/distribution/misc/Logo.png"
-_fetch_icon "ppsspp"         "https://raw.githubusercontent.com/hrydgard/ppsspp/master/icons/ppsspp.png"
-_fetch_icon "duckstation"    "https://raw.githubusercontent.com/stenzek/duckstation/master/src/duckstation-qt/resources/icons/duck.png"
+_fetch_icon "ppsspp"         "https://raw.githubusercontent.com/hrydgard/ppsspp/master/assets/icon.png"
+_fetch_icon "duckstation"    "https://raw.githubusercontent.com/stenzek/duckstation/master/src/duckstation-qt/resources/icons/AppIcon.png"
 _fetch_icon "uzdoom"         "https://raw.githubusercontent.com/UZDoom/UZDoom/master/src/posix/sdl/icon.png"
-_fetch_icon "pcsx2"          "https://raw.githubusercontent.com/PCSX2/pcsx2/master/pcsx2/gui/Resources/AppIcon256.png"
+_fetch_icon "pcsx2"          "https://raw.githubusercontent.com/PCSX2/pcsx2/master/pcsx2-qt/resources/icons/AppIcon128.png"
 _fetch_icon "cemu"           "https://raw.githubusercontent.com/cemu-project/Cemu/main/src/resource/cemu.png"
+_fetch_icon "dolphin"        "https://raw.githubusercontent.com/dolphin-emu/dolphin/master/Data/Sys/Resources/dolphin.png"
+_fetch_icon "bgb"            "https://raw.githubusercontent.com/mgba-emu/mgba/master/res/mgba-256.png"
+_fetch_icon "vkquake"        "https://raw.githubusercontent.com/Novum/vkQuake/master/Quake/vkquake.png"
+_fetch_icon "openmw"         "https://raw.githubusercontent.com/OpenMW/openmw/master/files/opencs/icons/openmw-cs.png"
+_fetch_icon "ghostship"      "https://raw.githubusercontent.com/HarbourMasters/Ghostship/main/src/resource/icons/128x128.png"
+_fetch_icon "protonplus"     "https://raw.githubusercontent.com/nicowillis/protonplus/main/data/icons/hicolor/scalable/apps/com.github.nicowillis.protonplus.svg" 2>/dev/null || true
+_fetch_icon "ecwolf"         "https://raw.githubusercontent.com/flathub/net.maniacsvault.ECWolf/master/icon.png"
 
-# Fonction utilitaire
+# Fonction utilitaire — APPIMAGE_EXTRACT_AND_RUN=1 évite le besoin de fuse2
 _make_desktop() {
     local name="$1" generic="$2" exec="$3" icon="$4" categories="${5:-Game;}"
     local file="$HOME/.local/share/applications/${name// /-}.desktop"
+    # Wrapper pour AppImages : évite les problèmes FUSE
+    local exec_cmd="$exec"
+    if [[ "$exec" == *.AppImage ]]; then
+        exec_cmd="env APPIMAGE_EXTRACT_AND_RUN=1 $exec"
+    fi
     cat > "$file" << EOF
 [Desktop Entry]
 Name=$name
 GenericName=$generic
-Exec=$exec
+Exec=$exec_cmd
 Icon=$icon
 Terminal=false
 Type=Application
@@ -580,7 +603,7 @@ Categories=$categories
 EOF
 }
 
-# AppImages
+# AppImages — Émulateurs
 [[ -f "$APPDIR/RetroArch.AppImage" ]]       && _make_desktop "RetroArch"          "Multi-system Emulator"       "$APPDIR/RetroArch.AppImage"       "$ICONDIR/retroarch.png"
 [[ -f "$APPDIR/mGBA.AppImage" ]]            && _make_desktop "mGBA"               "Game Boy / GBA Emulator"     "$APPDIR/mGBA.AppImage"            "$ICONDIR/mgba.png"
 [[ -f "$APPDIR/melonDS.AppImage" ]]         && _make_desktop "melonDS"            "Nintendo DS Emulator"        "$APPDIR/melonDS.AppImage"         "$ICONDIR/melonds.png"
@@ -589,8 +612,37 @@ EOF
 [[ -f "$APPDIR/duckstation-qt.AppImage" ]]  && _make_desktop "DuckStation"        "PlayStation 1 Emulator"      "$APPDIR/duckstation-qt.AppImage"  "$ICONDIR/duckstation.png"
 [[ -f "$APPDIR/pcsx2-Qt.AppImage" ]]        && _make_desktop "PCSX2"              "PlayStation 2 Emulator"      "$APPDIR/pcsx2-Qt.AppImage"        "$ICONDIR/pcsx2.png"
 [[ -f "$APPDIR/Cemu.AppImage" ]]            && _make_desktop "Cemu"               "Wii U Emulator"              "$APPDIR/Cemu.AppImage"            "$ICONDIR/cemu.png"
-[[ -f "$APPDIR/YamagiQ2.AppImage" ]]        && _make_desktop "Yamagi Quake II"    "Quake II Source Port"        "$APPDIR/YamagiQ2.AppImage"        "quake2"
+
+# AppImages — Source Ports
+[[ -f "$APPDIR/YamagiQ2.AppImage" ]]        && _make_desktop "Yamagi Quake II"    "Quake II Source Port"        "$APPDIR/YamagiQ2.AppImage"        "applications-games"
 [[ -f "$APPDIR/UZDoom.AppImage" ]]          && _make_desktop "UZDoom"             "Doom Engine"                 "$APPDIR/UZDoom.AppImage"          "$ICONDIR/uzdoom.png"
+
+# Source Ports compilés
+[[ -f "$HOME/.local/share/vkquake-source/build/vkquake" ]] && \
+    _make_desktop "vkQuake" "Quake (Vulkan)" "$HOME/.local/share/vkquake-source/build/vkquake" "$ICONDIR/vkquake.png"
+
+# ECWolf — binaire dans ~/.local/share/ecwolf/
+_ECWOLF_BIN=""
+_ECWOLF_BIN=$(find "$HOME/.local/share/ecwolf" -name "ecwolf" -type f 2>/dev/null | head -1) || true
+if [[ -n "$_ECWOLF_BIN" ]]; then
+    chmod +x "$_ECWOLF_BIN" 2>/dev/null || true
+    _make_desktop "ECWolf" "Wolfenstein 3D" "$_ECWOLF_BIN" "applications-games"
+fi
+
+# BGB — Game Boy via Wine
+[[ -f "$HOME/.local/share/bgb/bgb.exe" ]] && \
+    _make_desktop "BGB" "Game Boy Emulator" "wine $HOME/.local/share/bgb/bgb.exe" "$ICONDIR/bgb.png"
+
+# Dolphin
+# Dolphin — supprimer le .desktop système pour éviter le doublon
+sudo rm -f /usr/share/applications/dolphin-emu.desktop 2>/dev/null || true
+_DOLPHIN_BIN=""
+_DOLPHIN_BIN=$(find "$HOME/.local/share/dolphin-bin" -name "dolphin-emu" -type f 2>/dev/null | head -1) || true
+if [[ -n "$_DOLPHIN_BIN" ]]; then
+    _make_desktop "Dolphin" "GameCube / Wii Emulator" "$_DOLPHIN_BIN" "$ICONDIR/dolphin.png"
+elif command -v dolphin-emu &>/dev/null; then
+    _make_desktop "Dolphin" "GameCube / Wii Emulator" "dolphin-emu" "$ICONDIR/dolphin.png"
+fi
 
 # HarbourMasters
 [[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]] && _make_desktop "Ship of Harkinian"  "Zelda: Ocarina of Time"      "$APPDIR/ShipOfHarkinian.AppImage" "applications-games"
@@ -600,16 +652,17 @@ EOF
 [[ -f "$APPDIR/Ghostship.AppImage" ]]       && _make_desktop "Ghostship"          "Super Mario 64"              "$APPDIR/Ghostship.AppImage"       "applications-games"
 
 # OpenMW — chemin dynamique
+_OPENMW_BIN=$(find "$HOME/.local/share/openmw-bin" -name "openmw-launcher" -type f 2>/dev/null | head -1)
 if command -v openmw-launcher &>/dev/null; then
     _make_desktop "OpenMW" "Morrowind Engine" "$(command -v openmw-launcher)" "openmw-launcher"
-elif [[ -f "$HOME/.local/share/openmw-bin/openmw-launcher" ]]; then
-    _make_desktop "OpenMW" "Morrowind Engine" "$HOME/.local/share/openmw-bin/openmw-launcher" "openmw-launcher"
+elif [[ -n "$_OPENMW_BIN" ]]; then
+    _make_desktop "OpenMW" "Morrowind Engine" "$_OPENMW_BIN" "openmw-launcher"
 fi
 
 # Daggerfall Unity — chemin dynamique
-DFU_BIN=$(find "$HOME/.local/share/daggerfall-unity" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
-if [[ -n "$DFU_BIN" ]]; then
-    _make_desktop "Daggerfall Unity" "TES II: Daggerfall" "$DFU_BIN" "applications-games"
+_DFU_BIN=$(find "$HOME/.local/share/daggerfall-unity" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
+if [[ -n "$_DFU_BIN" ]]; then
+    _make_desktop "Daggerfall Unity" "TES II: Daggerfall" "$_DFU_BIN" "applications-games"
 fi
 
 # Mettre à jour le cache d'icônes KDE
@@ -668,6 +721,10 @@ banner "ECWOLF — COMPILATION VIA DOCKER (Ubuntu 20.04)"
 ECWOLF_DIR="$HOME/.local/share/ecwolf"
 ECWOLF_BIN="$ECWOLF_DIR/ecwolf"
 
+# Dépendances runtime nécessaires pour exécuter le binaire ECWolf compilé sous Ubuntu
+info "Installation des dépendances runtime ECWolf..."
+sudo pacman -S --noconfirm sdl2_mixer sdl2_net sdl2 || true
+
 if [[ -f "$ECWOLF_BIN" ]]; then
     success "ECWolf déjà compilé, skip."
 else
@@ -712,11 +769,12 @@ else
 [Desktop Entry]
 Name=ECWolf
 GenericName=Wolfenstein 3D
-Exec=$ECWOLF_BIN
+Exec=$ECWOLF_BIN --data %f
 Icon=wolf3d
 Terminal=false
 Type=Application
 Categories=Game;
+MimeType=application/x-wolf3d-data;
 EOF
         success "ECWolf compilé et installé depuis Ubuntu 20.04"
     } || {
@@ -801,6 +859,62 @@ fi
 unset -f _build_vkquake
 
 
+
+# ══════════════════════════════════════════════════════════
+#  PLYMOUTH — BOOT SPLASH (SEMATRIX — EFFET MATRIX)
+# ══════════════════════════════════════════════════════════
+banner "PLYMOUTH — BOOT SPLASH SEMATRIX"
+
+# ── Fonction de rollback Plymouth ────────────────────────
+# Pour annuler Plymouth si le boot est cassé, lance :
+#   bash 2-post-install-vm.sh --remove-plymouth
+_remove_plymouth() {
+    warn "=== SUPPRESSION DE PLYMOUTH ==="
+    info "Retrait du hook plymouth de mkinitcpio..."
+    sudo sed -i 's/ plymouth//' /etc/mkinitcpio.conf
+
+    info "Retrait de splash de GRUB..."
+    sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/' /etc/default/grub
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    info "Régénération de l'\''initramfs sans Plymouth..."
+    sudo mkinitcpio -P
+
+    info "Désactivation de Plymouth..."
+    sudo plymouth-set-default-theme details 2>/dev/null || true
+
+    success "Plymouth retiré — redémarre pour appliquer."
+    exit 0
+}
+
+# Détecter le flag --remove-plymouth
+if [[ "${1:-}" == "--remove-plymouth" ]]; then
+    _remove_plymouth
+fi
+
+if command -v plymouth &>/dev/null && plymouth-set-default-theme 2>/dev/null | grep -q "sematrix"; then
+    success "Plymouth sematrix déjà configuré, skip."
+else
+    info "Installation de Plymouth (AUR)..."
+    yay -S --noconfirm plymouth
+
+    info "Installation du thème sematrix (AUR)..."
+    yay -S --noconfirm sematrix-plymouth-theme
+
+    info "Ajout du hook Plymouth dans mkinitcpio..."
+    sudo sed -i 's/\(HOOKS=.*udev\)/\1 plymouth/' /etc/mkinitcpio.conf
+
+    info "Activation du thème sematrix..."
+    sudo plymouth-set-default-theme -R sematrix
+
+    info "Ajout de splash dans GRUB..."
+    sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="splash"/' /etc/default/grub
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    success "Plymouth sematrix configuré — effet Matrix au boot !"
+    warn "Si le boot est cassé après redémarrage, lance depuis une session TTY :"
+    warn "  bash 2-post-install-vm.sh --remove-plymouth"
+fi
 
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."

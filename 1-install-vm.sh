@@ -55,6 +55,7 @@ echo -e "  IDE           → ${GREEN}/dev/sda${NC}"
 echo -e "  NVMe          → ${GREEN}/dev/nvme0n1${NC}"
 echo ""
 
+<<<<<<< HEAD
 # Détection automatique du premier disque disponible via le type de bus
 _TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
 # Les contrôleurs SCSI (VMware par défaut) renvoient une valeur vide
@@ -66,6 +67,20 @@ case "${_TRAN,,}" in
         _AUTO_DISK="${_FALLBACK:-/dev/sda}" ;;
 esac
 
+=======
+# Détection automatique du premier disque disponible
+_TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
+case "${_TRAN,,}" in
+    nvme)         _AUTO_DISK="/dev/nvme0n1" ;;
+    sata|ide|usb) _AUTO_DISK="/dev/sda" ;;
+    *)
+        _FALLBACK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print "/dev/"$1}' | head -1)
+        _AUTO_DISK="${_FALLBACK:-/dev/sda}" ;;
+esac
+_AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
+
+_DISK=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
 
@@ -79,22 +94,42 @@ else
 fi
 
 # Hostname
+<<<<<<< HEAD
+=======
+_HOSTNAME=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
 HOSTNAME="${_HOSTNAME:-arch-vm}"
 
 # Username
+<<<<<<< HEAD
+=======
+_USERNAME=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
 USERNAME="${_USERNAME:-Admin}"
 
 # Timezone
+<<<<<<< HEAD
+=======
+_TIMEZONE=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
 TIMEZONE="${_TIMEZONE:-Europe/Paris}"
 
 # Locale
+<<<<<<< HEAD
+=======
+_LOCALE=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
 LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 
 # Keymap
+<<<<<<< HEAD
+=======
+_KEYMAP=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
 KEYMAP="${_KEYMAP:-fr}"
 
@@ -209,9 +244,31 @@ success "Vérification démontage terminée"
 # ══════════════════════════════════════════════════════════
 #  PARTITIONNEMENT
 # ══════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════
+#  DÉMONTAGE PRÉALABLE
+# ══════════════════════════════════════════════════════════
+banner "DÉMONTAGE PRÉALABLE"
+info "Vérification et démontage des partitions si nécessaire..."
+
+# Démonte /mnt récursivement s'il est monté
+if mountpoint -q /mnt; then
+    warn "/mnt est monté — démontage en cours..."
+    umount -R /mnt && success "/mnt démonté" || warn "Échec du démontage propre de /mnt, tentative forcée..."
+    umount -R -l /mnt 2>/dev/null || true
+fi
+
+# Démonte toute partition du disque cible encore montée ailleurs
+for PART in $(lsblk -ln -o NAME,MOUNTPOINT "$DISK" 2>/dev/null | awk '$2!="" {print "/dev/"$1}'); do
+    warn "Partition montée détectée : $PART → démontage..."
+    umount -l "$PART" 2>/dev/null && success "$PART démonté" || warn "Impossible de démonter $PART (ignoré)"
+done
+
+success "Vérification démontage terminée"
+
 banner "PARTITIONNEMENT"
 info "Effacement de la table de partitions sur $DISK..."
-sgdisk -Z "$DISK" &>/dev/null || true
+sgdisk -Z "$DISK" &>/dev/null
 
 info "Création des partitions GPT..."
 sgdisk -n 1:0:+512M  -t 1:ef00 -c 1:"EFI"  "$DISK"
@@ -260,7 +317,7 @@ success "Miroir sélectionné : ${GREEN}${SELECTED_MIRROR}${NC}"
 banner "SYSTÈME DE BASE"
 info "Installation des paquets de base..."
 # Pas de amd-ucode dans une VM (microcode inutile)
-pacstrap -K /mnt \
+pacstrap -K /mnt --disable-download-timeout \
     base base-devel \
     linux linux-headers linux-firmware \
     linux-lts linux-lts-headers \
