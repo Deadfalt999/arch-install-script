@@ -11,16 +11,6 @@ set -uo pipefail
 trap 's=$?; echo -e "\n❌ Erreur ligne $LINENO : $BASH_COMMAND\n"; exit $s' ERR
 
 # ══════════════════════════════════════════════════════════
-#  VARIABLES — Modifie ces valeurs avant de lancer !
-# ══════════════════════════════════════════════════════════
-DISK="/dev/nvme0n1"        # Disque VMware NVMe virtuel
-HOSTNAME="arch-vm"         # Nom de la machine virtuelle
-USERNAME="Admin"           # Nom d'utilisateur (minuscules, sans espace)
-TIMEZONE="Europe/Paris"
-LOCALE="fr_FR.UTF-8"
-KEYMAP="fr"
-
-# ══════════════════════════════════════════════════════════
 #  COULEURS & FONCTIONS
 # ══════════════════════════════════════════════════════════
 RED='\033[0;31m'; GREEN='\033[0;32m'
@@ -31,6 +21,92 @@ success() { echo -e "${GREEN}[OK]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error()   { echo -e "${RED}[ERREUR]${NC} $1"; exit 1; }
 banner()  { echo -e "\n${BOLD}══ $1 ══${NC}"; }
+
+# Fonction ask — accepte o/oui/y/yes/1 et n/non/no/0
+ask() {
+    local prompt="$1"
+    local default="${2:-o}"
+    local answer
+    while true; do
+        read -rp "$(echo -e "${YELLOW}$prompt${NC} [O/n]: ")" answer
+        answer="${answer:-$default}"
+        case "${answer,,}" in
+            o|oui|y|yes|1) return 0 ;;
+            n|non|no|0)    return 1 ;;
+            *) echo -e "  ${RED}→ Répondre par o/oui ou n/non.${NC}" ;;
+        esac
+    done
+}
+
+# ══════════════════════════════════════════════════════════
+#  WIZARD DE CONFIGURATION
+# ══════════════════════════════════════════════════════════
+banner "CONFIGURATION"
+echo -e "${BOLD}Réponds aux questions suivantes. Appuie sur Entrée pour garder la valeur par défaut.${NC}\n"
+
+# Disque — détection automatique selon le type VMware
+echo -e "${BLUE}Disques disponibles :${NC}"
+fdisk -l 2>/dev/null | grep "^Disk /dev" | grep -v "loop"
+echo ""
+echo -e "${YELLOW}Types de disques VMware supportés :${NC}"
+echo -e "  SCSI (défaut) → ${GREEN}/dev/sda${NC}"
+echo -e "  SATA          → ${GREEN}/dev/sda${NC}"
+echo -e "  IDE           → ${GREEN}/dev/sda${NC}"
+echo -e "  NVMe          → ${GREEN}/dev/nvme0n1${NC}"
+echo ""
+
+# Détection automatique du premier disque disponible via le type de bus
+_TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
+# Les contrôleurs SCSI (VMware par défaut) renvoient une valeur vide
+case "${_TRAN,,}" in
+    nvme)         _AUTO_DISK="/dev/nvme0n1" ;;
+    sata|ide|usb) _AUTO_DISK="/dev/sda" ;;
+    *) # SCSI ou valeur vide — fallback sur le premier disque détecté
+        _FALLBACK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print "/dev/"$1}' | head -1)
+        _AUTO_DISK="${_FALLBACK:-/dev/sda}" ;;
+esac
+
+read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
+DISK="${_DISK:-$_AUTO_DISK}"
+
+# Adapter les noms de partitions selon le type de disque
+if [[ "$DISK" == *"nvme"* ]]; then
+    EFI_PART="${DISK}p1"
+    ROOT_PART="${DISK}p2"
+else
+    EFI_PART="${DISK}1"
+    ROOT_PART="${DISK}2"
+fi
+
+# Hostname
+read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
+HOSTNAME="${_HOSTNAME:-arch-vm}"
+
+# Username
+read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
+USERNAME="${_USERNAME:-Admin}"
+
+# Timezone
+read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
+TIMEZONE="${_TIMEZONE:-Europe/Paris}"
+
+# Locale
+read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
+LOCALE="${_LOCALE:-fr_FR.UTF-8}"
+
+# Keymap
+read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
+KEYMAP="${_KEYMAP:-fr}"
+
+echo ""
+echo -e "${BOLD}Configuration retenue :${NC}"
+echo -e "  Disque   : ${GREEN}$DISK${NC}"
+echo -e "  Hostname : ${GREEN}$HOSTNAME${NC}"
+echo -e "  User     : ${GREEN}$USERNAME${NC}"
+echo -e "  Timezone : ${GREEN}$TIMEZONE${NC}"
+echo -e "  Locale   : ${GREEN}$LOCALE${NC}"
+echo -e "  Clavier  : ${GREEN}$KEYMAP${NC}"
+echo ""
 
 # ══════════════════════════════════════════════════════════
 #  VÉRIFICATIONS PRÉALABLES
@@ -61,14 +137,8 @@ warn_weak_password() {
     local pwd="$2"
     if [[ ${#pwd} -lt 6 ]]; then
         echo -e "\n${RED}${BOLD}⚠️  AVERTISSEMENT DE SÉCURITÉ — Mot de passe $label${NC}"
-        echo -e "${YELLOW}  Le mot de passe saisi contient moins de 6 caractères."
-        echo -e "  Un mot de passe aussi court est extrêmement vulnérable :"
-        echo -e "  il peut être cracké en quelques secondes par force brute."
-        echo -e "  Un bon mot de passe devrait contenir au minimum 12 caractères,"
-        echo -e "  mélanger majuscules, minuscules, chiffres et symboles.${NC}"
-        echo -n "  Continuer quand même avec ce mot de passe peu sécurisé ? (yes/no) : "
-        read WEAK_CONFIRM
-        [[ "$WEAK_CONFIRM" == "yes" ]] || error "Installation annulée — choisis un mot de passe plus fort."
+        echo -e "${YELLOW}  Moins de 6 caractères — extrêmement vulnérable.${NC}"
+        ask "  Continuer quand même ?" "n" || error "Installation annulée — choisis un mot de passe plus fort."
     fi
 }
 
@@ -116,6 +186,27 @@ timedatectl set-ntp true
 success "Horloge synchronisée"
 
 # ══════════════════════════════════════════════════════════
+#  DÉMONTAGE PRÉALABLE
+# ══════════════════════════════════════════════════════════
+banner "DÉMONTAGE PRÉALABLE"
+info "Vérification et démontage des partitions si nécessaire..."
+
+# Démonte /mnt récursivement s'il est monté
+if mountpoint -q /mnt; then
+    warn "/mnt est monté — démontage en cours..."
+    umount -R /mnt && success "/mnt démonté" || warn "Échec du démontage propre de /mnt, tentative forcée..."
+    umount -R -l /mnt 2>/dev/null || true
+fi
+
+# Démonte toute partition du disque cible encore montée ailleurs
+for PART in $(lsblk -ln -o NAME,MOUNTPOINT "$DISK" 2>/dev/null | awk '$2!="" {print "/dev/"$1}'); do
+    warn "Partition montée détectée : $PART → démontage..."
+    umount -l "$PART" 2>/dev/null && success "$PART démonté" || warn "Impossible de démonter $PART (ignoré)"
+done
+
+success "Vérification démontage terminée"
+
+# ══════════════════════════════════════════════════════════
 #  PARTITIONNEMENT
 # ══════════════════════════════════════════════════════════
 banner "PARTITIONNEMENT"
@@ -125,16 +216,7 @@ sgdisk -Z "$DISK" &>/dev/null || true
 info "Création des partitions GPT..."
 sgdisk -n 1:0:+512M  -t 1:ef00 -c 1:"EFI"  "$DISK"
 sgdisk -n 2:0:0      -t 2:8300 -c 2:"ROOT" "$DISK"
-success "Partitions créées"
-
-# Détection dynamique NVMe vs SATA
-if [[ "$DISK" == *"nvme"* ]]; then
-    EFI_PART="${DISK}p1"
-    ROOT_PART="${DISK}p2"
-else
-    EFI_PART="${DISK}1"
-    ROOT_PART="${DISK}2"
-fi
+success "Partitions créées (EFI=$EFI_PART ROOT=$ROOT_PART)"
 
 info "Vérification..."
 fdisk -l "$DISK"
@@ -164,10 +246,13 @@ success "Partitions montées"
 #  MIROIRS (France)
 # ══════════════════════════════════════════════════════════
 banner "MIROIRS"
-info "Sélection des miroirs les plus rapides (France)..."
+info "Sélection du miroir le plus rapide (France)..."
+
 reflector --country France --age 12 --protocol https --sort rate \
-    --save /etc/pacman.d/mirrorlist
-success "Miroirs configurés"
+    --save /etc/pacman.d/mirrorlist &>/dev/null
+
+SELECTED_MIRROR=$(grep "^Server" /etc/pacman.d/mirrorlist | head -1 | sed 's/Server = //')
+success "Miroir sélectionné : ${GREEN}${SELECTED_MIRROR}${NC}"
 
 # ══════════════════════════════════════════════════════════
 #  INSTALLATION BASE
@@ -184,7 +269,8 @@ pacstrap -K /mnt \
     git wget curl \
     grub efibootmgr \
     sudo \
-    gptfdisk
+    gptfdisk \
+    --disable-download-timeout
 success "Système de base installé"
 
 # ══════════════════════════════════════════════════════════
@@ -321,7 +407,8 @@ pacman -S --noconfirm \
     mesa \
     xf86-input-vmmouse \
     xorg-server xorg-xinit \
-    vulkan-icd-loader
+    vulkan-icd-loader \
+    --disable-download-timeout
 success "Drivers VMware installés"
 
 # ── open-vm-tools ────────────────────────────────
@@ -343,6 +430,8 @@ info "Configuration de GRUB (pas de timer, boot sur kernel standard)..."
 sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3600/' /etc/default/grub
 # Le kernel standard (non-LTS) est la première entrée générée par grub-mkconfig
 sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=0/' /etc/default/grub
+sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/' /etc/default/grub
+sed -i 's/^#?GRUB_GFXMODE=.*/GRUB_GFXMODE=1920x1080x32/' /etc/default/grub
 info "Génération de la configuration GRUB..."
 grub-mkconfig -o /boot/grub/grub.cfg
 success "GRUB installé et configuré (timeout=0, default=kernel standard)"
@@ -357,7 +446,8 @@ pacman -S --noconfirm \
     xdg-user-dirs xdg-desktop-portal xdg-desktop-portal-kde \
     packagekit-qt6 \
     dolphin konsole kate firefox \
-    htop fastfetch
+    htop fastfetch \
+    --disable-download-timeout
 success "KDE Plasma installé"
 
 # ── Logiciels supplémentaires ────────────────────
@@ -367,25 +457,29 @@ pacman -S --noconfirm \
     vlc \
     okular \
     gnome-disk-utility \
-    yakuake
+    yakuake \
+    --disable-download-timeout
 success "Multimédia & utilitaires installés"
 
 info "Gaming (Lutris + Steam)..."
 pacman -S --noconfirm \
     lutris \
-    steam
+    steam \
+    --disable-download-timeout
 success "Lutris et Steam installés"
 
 info "XFCE4 — session X11..."
 # labwc retiré : XFCE4 Wayland expérimental supprimé, X11 uniquement
 # Plasma reste en Wayland, XFCE4 en X11
 pacman -S --noconfirm \
-    xfce4 xfce4-goodies
+    xfce4 xfce4-goodies \
+    --disable-download-timeout
 success "XFCE4 installé (X11)"
 
 info "Installation de Cinnamon (X11)..."
 pacman -S --noconfirm \
-    cinnamon
+    cinnamon \
+    --disable-download-timeout
 success "Cinnamon installé (X11)"
 
 # ── Services ─────────────────────────────────────
