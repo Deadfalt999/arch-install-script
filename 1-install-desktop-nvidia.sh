@@ -7,30 +7,6 @@
 # Usage : bash 1-install-desktop-nvidia.sh
 # ⚠️  Ce script va EFFACER ENTIÈREMENT le disque cible !
 
-set -uo pipefail
-trap 's=$?; echo -e "\n❌ Erreur ligne $LINENO : $BASH_COMMAND\n"; exit $s' ERR
-
-# ══════════════════════════════════════════════════════════
-#  VARIABLES — Modifie ces valeurs avant de lancer !
-# ══════════════════════════════════════════════════════════
-DISK="/dev/nvme0n1"        # Vérifie avec : fdisk -l
-HOSTNAME="mon-desktop"     # Nom de la machine sur le réseau
-USERNAME="Admin"           # Nom d'utilisateur
-TIMEZONE="Europe/Paris"
-LOCALE="fr_FR.UTF-8"
-KEYMAP="fr"
-
-# ══════════════════════════════════════════════════════════
-#  COULEURS & FONCTIONS
-# ══════════════════════════════════════════════════════════
-RED='\033[0;31m'; GREEN='\033[0;32m'
-YELLOW='\033[1;33m'; BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
-
-info()    { echo -e "\n${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error()   { echo -e "${RED}[ERREUR]${NC} $1"; exit 1; }
-banner()  { echo -e "\n${BOLD}══ $1 ══${NC}"; }
 
 # ══════════════════════════════════════════════════════════
 #  VÉRIFICATIONS PRÉALABLES
@@ -66,14 +42,8 @@ warn_weak_password() {
     local pwd="$2"
     if [[ ${#pwd} -lt 6 ]]; then
         echo -e "\n${RED}${BOLD}⚠️  AVERTISSEMENT DE SÉCURITÉ — Mot de passe $label${NC}"
-        echo -e "${YELLOW}  Le mot de passe saisi contient moins de 6 caractères."
-        echo -e "  Un mot de passe aussi court est extrêmement vulnérable :"
-        echo -e "  il peut être cracké en quelques secondes par force brute."
-        echo -e "  Un bon mot de passe devrait contenir au minimum 12 caractères,"
-        echo -e "  mélanger majuscules, minuscules, chiffres et symboles.${NC}"
-        echo -n "  Continuer quand même avec ce mot de passe peu sécurisé ? (yes/no) : "
-        read WEAK_CONFIRM
-        [[ "$WEAK_CONFIRM" == "yes" ]] || error "Installation annulée — choisis un mot de passe plus fort."
+        echo -e "${YELLOW}  Moins de 6 caractères — extrêmement vulnérable.${NC}"
+        ask "  Continuer quand même ?" "n" || error "Installation annulée — choisis un mot de passe plus fort."
     fi
 }
 
@@ -346,6 +316,8 @@ grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ARCH
 info "Configuration de GRUB (timeout 1h, boot sur kernel standard)..."
 sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3600/' /etc/default/grub
 sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=0/' /etc/default/grub
+sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/' /etc/default/grub
+sed -i 's/^#?GRUB_GFXMODE=.*/GRUB_GFXMODE=1920x1080x32/' /etc/default/grub
 info "Génération de la configuration GRUB..."
 grub-mkconfig -o /boot/grub/grub.cfg
 success "GRUB installé et configuré"
