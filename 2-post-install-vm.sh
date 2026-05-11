@@ -444,7 +444,7 @@ if [[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]]; then
     success "Ship of Harkinian déjà présent, skip."
 else
     info "Téléchargement de Ship of Harkinian (Zelda: OoT)..."
-    download_appimage "HarbourMasters/Shipwright" "AppImage" "ShipOfHarkinian.AppImage" \
+    download_appimage "HarbourMasters/Shipwright" "Linux" "ShipOfHarkinian.AppImage" \
         || warn "Ship of Harkinian introuvable — télécharge manuellement depuis github.com/HarbourMasters/Shipwright"
 fi
 
@@ -453,7 +453,7 @@ if [[ -f "$APPDIR/2Ship2Harkinian.AppImage" ]]; then
     success "2 Ship 2 Harkinian déjà présent, skip."
 else
     info "Téléchargement de 2 Ship 2 Harkinian (Zelda: MM)..."
-    download_appimage "HarbourMasters/2ship2harkinian" "AppImage" "2Ship2Harkinian.AppImage" \
+    download_appimage "HarbourMasters/2ship2harkinian" "Linux" "2Ship2Harkinian.AppImage" \
         || warn "2 Ship 2 Harkinian introuvable — télécharge manuellement depuis github.com/HarbourMasters/2ship2harkinian"
 fi
 
@@ -462,7 +462,7 @@ if [[ -f "$APPDIR/Starship.AppImage" ]]; then
     success "Starship déjà présent, skip."
 else
     info "Téléchargement de Starship (Star Fox 64)..."
-    download_appimage "HarbourMasters/Starship" "AppImage" "Starship.AppImage" \
+    download_appimage "HarbourMasters/Starship" "Linux" "Starship.AppImage" \
         || warn "Starship introuvable — télécharge manuellement depuis github.com/HarbourMasters/Starship"
 fi
 
@@ -471,9 +471,10 @@ if [[ -f "$APPDIR/SpaghettiKart.AppImage" ]]; then
     success "SpaghettiKart déjà présent, skip."
 else
     info "Téléchargement de SpaghettiKart (Mario Kart 64)..."
-    download_appimage "HarbourMasters/SpaghettiKart" "AppImage" "SpaghettiKart.AppImage" \
+    download_appimage "HarbourMasters/SpaghettiKart" "Linux" "SpaghettiKart.AppImage" \
         || warn "SpaghettiKart introuvable — télécharge manuellement depuis github.com/HarbourMasters/SpaghettiKart"
 fi
+
 success "Ports HarbourMasters installés dans $APPDIR"
 
 
@@ -526,19 +527,23 @@ _fetch_icon() {
 }
 
 info "Téléchargement des icônes..."
-_fetch_icon "retroarch"      "https://raw.githubusercontent.com/libretro/retroarch-assets/master/pkg/osx/retroarch.png"
+_fetch_icon "retroarch"      "https://raw.githubusercontent.com/libretro/retroarch-assets/master/xmb/monochrome/png/retroarch.png"
 _fetch_icon "mgba"           "https://raw.githubusercontent.com/mgba-emu/mgba/master/res/mgba-256.png"
 _fetch_icon "melonds"        "https://raw.githubusercontent.com/melonDS-emu/melonDS/master/res/melon_256x256.png"
 _fetch_icon "ryujinx"        "https://raw.githubusercontent.com/Ryubing/Canary/master/distribution/misc/Logo.png"
-_fetch_icon "ppsspp"         "https://raw.githubusercontent.com/hrydgard/ppsspp/master/icons/ppsspp.png"
-_fetch_icon "duckstation"    "https://raw.githubusercontent.com/stenzek/duckstation/master/src/duckstation-qt/resources/icons/duck.png"
+_fetch_icon "ppsspp"         "https://raw.githubusercontent.com/hrydgard/ppsspp/master/assets/icon.png"
+_fetch_icon "duckstation"    "https://raw.githubusercontent.com/stenzek/duckstation/master/src/duckstation-qt/resources/icons/AppIcon.png"
 _fetch_icon "uzdoom"         "https://raw.githubusercontent.com/UZDoom/UZDoom/master/src/posix/sdl/icon.png"
-_fetch_icon "pcsx2"          "https://raw.githubusercontent.com/PCSX2/pcsx2/master/pcsx2/gui/Resources/AppIcon256.png"
+_fetch_icon "pcsx2"          "https://raw.githubusercontent.com/PCSX2/pcsx2/master/pcsx2-qt/resources/icons/AppIcon128.png"
 _fetch_icon "cemu"           "https://raw.githubusercontent.com/cemu-project/Cemu/main/src/resource/cemu.png"
-_fetch_icon "dolphin"        "https://raw.githubusercontent.com/dolphin-emu/dolphin/master/Data/dolphin.png"
+_fetch_icon "dolphin"        "https://raw.githubusercontent.com/dolphin-emu/dolphin/master/Data/Sys/Resources/dolphin.png"
 _fetch_icon "bgb"            "https://raw.githubusercontent.com/mgba-emu/mgba/master/res/mgba-256.png"
-_fetch_icon "vkquake"        "https://raw.githubusercontent.com/Novum/vkQuake/master/Quake/QuakeEX.kpf.icon.png"
-_fetch_icon "ecwolf"         "https://raw.githubusercontent.com/gitbub/ecwolf/master/src/posix/sdl/icons/icon.svg" 2>/dev/null || true
+_fetch_icon "vkquake"        "https://raw.githubusercontent.com/Novum/vkQuake/master/Quake/vkquake.png"
+_fetch_icon "openmw"         "https://raw.githubusercontent.com/OpenMW/openmw/master/files/opencs/icons/openmw-cs.png"
+_fetch_icon "ghostship"      "https://raw.githubusercontent.com/HarbourMasters/Ghostship/main/src/resource/icons/128x128.png"
+_fetch_icon "ecwolf"         "https://raw.githubusercontent.com/flathub/net.maniacsvault.ECWolf/master/icon.png"
+_fetch_icon "protonplus"     "https://raw.githubusercontent.com/nicowillis/protonplus/main/data/icons/hicolor/scalable/apps/com.github.nicowillis.protonplus.svg" 2>/dev/null || true
+
 
 # Fonction utilitaire — APPIMAGE_EXTRACT_AND_RUN=1 évite le besoin de fuse2
 _make_desktop() {
@@ -592,10 +597,16 @@ fi
     _make_desktop "BGB" "Game Boy Emulator" "wine $HOME/.local/share/bgb/bgb.exe" "$ICONDIR/bgb.png"
 
 # Dolphin
-_DOLPHIN_BIN=$(find "$HOME/.local/share/dolphin-bin" -name "dolphin-emu" -type f 2>/dev/null | head -1)
+# Dolphin — supprimer le .desktop système pour éviter le doublon
+sudo rm -f /usr/share/applications/dolphin-emu.desktop 2>/dev/null || true
+_DOLPHIN_BIN=""
+_DOLPHIN_BIN=$(find "$HOME/.local/share/dolphin-bin" -name "dolphin-emu" -type f 2>/dev/null | head -1) || true
 if [[ -n "$_DOLPHIN_BIN" ]]; then
     _make_desktop "Dolphin" "GameCube / Wii Emulator" "$_DOLPHIN_BIN" "$ICONDIR/dolphin.png"
+elif command -v dolphin-emu &>/dev/null; then
+    _make_desktop "Dolphin" "GameCube / Wii Emulator" "dolphin-emu" "$ICONDIR/dolphin.png"
 fi
+
 
 # HarbourMasters
 [[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]] && _make_desktop "Ship of Harkinian"  "Zelda: Ocarina of Time"      "$APPDIR/ShipOfHarkinian.AppImage" "applications-games"
