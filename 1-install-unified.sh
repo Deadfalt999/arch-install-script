@@ -197,8 +197,15 @@ echo ""
 read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
 
-[[ "$DISK" == *"nvme"* ]] && EFI_PART="${DISK}p1" && ROOT_PART="${DISK}p2" \
-                           || EFI_PART="${DISK}1" && ROOT_PART="${DISK}2"
+# Nommage correct des partitions selon le type de disque
+if [[ "$DISK" == *"nvme"* ]] || [[ "$DISK" == *"mmcblk"* ]]; then
+    EFI_PART="${DISK}p1"
+    ROOT_PART="${DISK}p2"
+else
+    EFI_PART="${DISK}1"
+    ROOT_PART="${DISK}2"
+fi
+info "Partitions : EFI=$EFI_PART  ROOT=$ROOT_PART"
 
 _DEFAULT_HOST="mon-pc"
 $_IS_VM && _DEFAULT_HOST="arch-vm"
