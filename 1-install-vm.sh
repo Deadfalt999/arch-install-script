@@ -194,6 +194,28 @@ success "Horloge synchronisée"
 # ══════════════════════════════════════════════════════════
 #  PARTITIONNEMENT
 # ══════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════
+#  DÉMONTAGE PRÉALABLE
+# ══════════════════════════════════════════════════════════
+banner "DÉMONTAGE PRÉALABLE"
+info "Vérification et démontage des partitions si nécessaire..."
+
+# Démonte /mnt récursivement s'il est monté
+if mountpoint -q /mnt; then
+    warn "/mnt est monté — démontage en cours..."
+    umount -R /mnt && success "/mnt démonté" || warn "Échec du démontage propre de /mnt, tentative forcée..."
+    umount -R -l /mnt 2>/dev/null || true
+fi
+
+# Démonte toute partition du disque cible encore montée ailleurs
+for PART in $(lsblk -ln -o NAME,MOUNTPOINT "$DISK" 2>/dev/null | awk '$2!="" {print "/dev/"$1}'); do
+    warn "Partition montée détectée : $PART → démontage..."
+    umount -l "$PART" 2>/dev/null && success "$PART démonté" || warn "Impossible de démonter $PART (ignoré)"
+done
+
+success "Vérification démontage terminée"
+
 banner "PARTITIONNEMENT"
 info "Effacement de la table de partitions sur $DISK..."
 sgdisk -Z "$DISK" &>/dev/null
