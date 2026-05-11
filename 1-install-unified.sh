@@ -168,19 +168,33 @@ banner "CONFIGURATION"
 echo -e "${BOLD}Appuie sur Entrée pour garder la valeur par défaut.${NC}\n"
 
 echo -e "${BLUE}Disques disponibles :${NC}"
-fdisk -l 2>/dev/null | grep "^Disk /dev" | grep -v "loop"
-echo ""
-echo -e "${YELLOW}Types de disques supportés :${NC}"
-echo -e "  NVMe  → ${GREEN}/dev/nvme0n1${NC}    SATA/SCSI/IDE → ${GREEN}/dev/sda${NC}"
+lsblk -d -o NAME,SIZE,TYPE,TRAN,MODEL 2>/dev/null | grep "disk" | while IFS= read -r line; do
+    echo "  $line"
+done
 echo ""
 
+# Détection automatique du type de bus et du disque
 _TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | grep -v "^$" | head -1)
+_DISK_NAME=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print $1}' | head -1)
+
 case "${_TRAN,,}" in
-    nvme)         _AUTO_DISK="/dev/nvme0n1" ;;
-    sata|ide|usb) _AUTO_DISK="/dev/sda" ;;
-    *)            _AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print "/dev/"$1}' | head -1)
-                  _AUTO_DISK="${_AUTO_DISK:-/dev/sda}" ;;
+    nvme)         _AUTO_DISK="/dev/nvme0n1"
+                  _DISK_TYPE="NVMe" ;;
+    sata)         _AUTO_DISK="/dev/sda"
+                  _DISK_TYPE="SATA" ;;
+    ide)          _AUTO_DISK="/dev/sda"
+                  _DISK_TYPE="IDE" ;;
+    scsi)         _AUTO_DISK="/dev/sda"
+                  _DISK_TYPE="SCSI" ;;
+    usb)          _AUTO_DISK="/dev/sda"
+                  _DISK_TYPE="USB" ;;
+    *)            _AUTO_DISK="${_DISK_NAME:+/dev/$_DISK_NAME}"
+                  _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
+                  _DISK_TYPE="inconnu" ;;
 esac
+
+echo -e "  ${GREEN}→ Type détecté : ${BOLD}${_DISK_TYPE}${NC} → ${GREEN}${_AUTO_DISK}${NC}"
+echo ""
 
 read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
