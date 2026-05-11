@@ -36,35 +36,82 @@ ask() {
     done
 }
 
-
-#  VÉRIFICATIONS PRÉALABLES
-# ══════════════════════════════════════════════════════════
-
 # ══════════════════════════════════════════════════════════
 #  WIZARD DE CONFIGURATION
 # ══════════════════════════════════════════════════════════
+banner "CONFIGURATION"
+echo -e "${BOLD}Réponds aux questions suivantes. Appuie sur Entrée pour garder la valeur par défaut.${NC}\n"
 
+# Disque — détection automatique selon le type VMware
+echo -e "${BLUE}Disques disponibles :${NC}"
+fdisk -l 2>/dev/null | grep "^Disk /dev" | grep -v "loop"
+echo ""
+echo -e "${YELLOW}Types de disques VMware supportés :${NC}"
+echo -e "  SCSI (défaut) → ${GREEN}/dev/sda${NC}"
+echo -e "  SATA          → ${GREEN}/dev/sda${NC}"
+echo -e "  IDE           → ${GREEN}/dev/sda${NC}"
+echo -e "  NVMe          → ${GREEN}/dev/nvme0n1${NC}"
+echo ""
+
+# Détection automatique du premier disque disponible
+_AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | grep "disk" | head -1 | awk '{print "/dev/"$1}')
+_AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
+
+read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK || true
+DISK="${_DISK:-$_AUTO_DISK}"
+
+# Adapter les noms de partitions selon le type de disque
+if [[ "$DISK" == *"nvme"* ]]; then
+    EFI_PART="${DISK}p1"
+    ROOT_PART="${DISK}p2"
+else
+    EFI_PART="${DISK}1"
+    ROOT_PART="${DISK}2"
+fi
+
+# Hostname
+read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME || true
+HOSTNAME="${_HOSTNAME:-arch-vm}"
+
+# Username
+read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME || true
+USERNAME="${_USERNAME:-Admin}"
+
+# Timezone
+read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE || true
+TIMEZONE="${_TIMEZONE:-Europe/Paris}"
+
+# Locale
+read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE || true
+LOCALE="${_LOCALE:-fr_FR.UTF-8}"
+
+# Keymap
+read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP || true
+KEYMAP="${_KEYMAP:-fr}"
+
+echo ""
+echo -e "${BOLD}Configuration retenue :${NC}"
+echo -e "  Disque   : ${GREEN}$DISK${NC}"
+echo -e "  Hostname : ${GREEN}$HOSTNAME${NC}"
+echo -e "  User     : ${GREEN}$USERNAME${NC}"
+echo -e "  Timezone : ${GREEN}$TIMEZONE${NC}"
+echo -e "  Locale   : ${GREEN}$LOCALE${NC}"
+echo -e "  Clavier  : ${GREEN}$KEYMAP${NC}"
+echo ""
+
+# ══════════════════════════════════════════════════════════
+#  VÉRIFICATIONS PRÉALABLES
+# ══════════════════════════════════════════════════════════
 banner "VÉRIFICATIONS"
 
 info "Mode UEFI..."
-ls /sys/firmware/efi/efivars &>/dev/null || error "Pas en mode UEFI ! Vérifie les paramètres BIOS."
+ls /sys/firmware/efi/efivars &>/dev/null || error "Pas en mode UEFI ! Active l'UEFI dans les paramètres de la VM."
 success "Mode UEFI confirmé"
 
-info "Connexion internet (Ethernet)..."
-ETH_IF=$(ip link | awk -F: '/^[0-9]+: e/{print $2; exit}' | tr -d ' ')
-if [[ -n "$ETH_IF" ]]; then
-    ip link set "$ETH_IF" up 2>/dev/null || true
-    ip addr show "$ETH_IF" | grep -q "inet " || dhcpcd "$ETH_IF" &>/dev/null || true
-fi
-ping -c 1 -W 5 archlinux.org &>/dev/null \
-    || error "Pas de connexion internet.\n  → Vérifie que le câble Ethernet est bien branché.\n  → Interface détectée : ${ETH_IF:-aucune}\n  → Essaie manuellement : ip link set \$ETH_IF up && dhcpcd \$ETH_IF"
-success "Connexion Ethernet OK (interface : ${ETH_IF:-inconnue})"
+info "Connexion internet (NAT VMware)..."
 
-info "Disque cible : $DISK"
-fdisk -l "$DISK" 2>/dev/null | head -5 || error "Disque $DISK introuvable ! Vérifie avec : fdisk -l"
-success "Disque trouvé"
+banner "VÉRIFICATIONS"
 
-# ══════════════════════════════════════════════════════════
 #  SAISIE DES MOTS DE PASSE
 # ══════════════════════════════════════════════════════════
 banner "MOTS DE PASSE"
@@ -465,7 +512,7 @@ echo ""
 _AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | grep "disk" | head -1 | awk '{print "/dev/"$1}')
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
-read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
+read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK || true
 DISK="${_DISK:-$_AUTO_DISK}"
 
 # Adapter les noms de partitions selon le type de disque
@@ -478,23 +525,23 @@ else
 fi
 
 # Hostname
-read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
+read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME || true
 HOSTNAME="${_HOSTNAME:-arch-vm}"
 
 # Username
-read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
+read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME || true
 USERNAME="${_USERNAME:-Admin}"
 
 # Timezone
-read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
+read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE || true
 TIMEZONE="${_TIMEZONE:-Europe/Paris}"
 
 # Locale
-read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
+read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE || true
 LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 
 # Keymap
-read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
+read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP || true
 KEYMAP="${_KEYMAP:-fr}"
 
 echo ""
