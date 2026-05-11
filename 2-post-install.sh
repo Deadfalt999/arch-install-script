@@ -196,15 +196,12 @@ EOF
 
 # ── AppImages — téléchargées depuis GitHub ───────────────
 # RetroArch (nightly officiel)
-info "Téléchargement de RetroArch (AppImage nightly)..."
 if [[ -f "$APPDIR/RetroArch.AppImage" ]]; then
     success "RetroArch déjà présent, skip."
 else
-    curl -fsSL --progress-bar \
-        -o "$APPDIR/RetroArch.AppImage" \
-        "https://github.com/hizzlekizzle/RetroArch-AppImage/releases/download/Linux_LTS_Nightlies/RetroArch-Linux-x86_64-Nightly.AppImage"
-    chmod +x "$APPDIR/RetroArch.AppImage"
-    success "RetroArch AppImage installé"
+    info "Téléchargement de RetroArch (AppImage nightly)..."
+    download_appimage "hizzlekizzle/RetroArch-AppImage" "Nightly.AppImage" "RetroArch.AppImage" \
+        || warn "RetroArch introuvable — télécharge manuellement depuis buildbot.libretro.com"
 fi
 
 download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
@@ -802,7 +799,6 @@ unset -f _build_vkquake
 
 
 
-<<<<<<< HEAD
 # ══════════════════════════════════════════════════════════
 #  PLYMOUTH — BOOT SPLASH (SEMATRIX — EFFET MATRIX)
 # ══════════════════════════════════════════════════════════
@@ -859,8 +855,6 @@ else
     warn "  bash 2-post-install-vm.sh --remove-plymouth"
 fi
 
-=======
->>>>>>> 26a90e076a659dba278cfef05d7d7db448aa8d16
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
 sudo pacman -S --noconfirm \

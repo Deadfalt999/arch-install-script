@@ -165,15 +165,12 @@ EOF
 
 # ── AppImages — téléchargées depuis GitHub ───────────────
 # RetroArch (nightly officiel)
-info "Téléchargement de RetroArch (AppImage nightly)..."
 if [[ -f "$APPDIR/RetroArch.AppImage" ]]; then
     success "RetroArch déjà présent, skip."
 else
-    curl -fsSL --progress-bar \
-        -o "$APPDIR/RetroArch.AppImage" \
-        "https://github.com/hizzlekizzle/RetroArch-AppImage/releases/download/Linux_LTS_Nightlies/RetroArch-Linux-x86_64-Nightly.AppImage"
-    chmod +x "$APPDIR/RetroArch.AppImage"
-    success "RetroArch AppImage installé"
+    info "Téléchargement de RetroArch (AppImage nightly)..."
+    download_appimage "hizzlekizzle/RetroArch-AppImage" "Nightly.AppImage" "RetroArch.AppImage" \
+        || warn "RetroArch introuvable — télécharge manuellement depuis buildbot.libretro.com"
 fi
 
 download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
@@ -784,201 +781,6 @@ unset -f _build_vkquake
 
 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 26a90e076a659dba278cfef05d7d7db448aa8d16
-# ── Wine Staging & outils (pacman) ───────────────────────
-info "Installation de Wine Staging..."
-sudo pacman -S --noconfirm \
-    wine-staging \
-    wine-gecko \
-    wine-mono \
-    winetricks
-success "Wine Staging installé"
-
-# ── ProtonPlus (AUR) ─────────────────────────────────────
-info "Installation de ProtonPlus (gestionnaire Proton/Wine)..."
-if command -v protonplus &>/dev/null; then
-    success "ProtonPlus déjà installé, skip."
-else
-    yay -S --noconfirm protonplus
-    success "ProtonPlus installé"
-fi
-
-# ── BGB — Game Boy (binaire Windows via Wine) ────────────
-info "Installation de BGB (émulateur Game Boy, binaire Windows via Wine)..."
-BGB_DIR="$HOME/.local/share/bgb"
-if [[ -f "$BGB_DIR/bgb.exe" ]]; then
-    success "BGB déjà installé, skip."
-else
-    mkdir -p "$BGB_DIR"
-    mkdir -p "$HOME/.local/bin"
-    curl -fsSL --progress-bar -o /tmp/bgb.zip "https://bgb.bircd.org/bgb.zip"
-    unzip -o /tmp/bgb.zip -d "$BGB_DIR"
-    rm /tmp/bgb.zip
-    cat > "$HOME/.local/bin/bgb" << EOF
-#!/bin/bash
-wine "$BGB_DIR/bgb.exe" "\$@"
-EOF
-    chmod +x "$HOME/.local/bin/bgb"
-    mkdir -p "$HOME/.local/share/applications"
-    cat > "$HOME/.local/share/applications/bgb.desktop" << EOF
-[Desktop Entry]
-Name=BGB
-GenericName=Game Boy Emulator
-Exec=wine $BGB_DIR/bgb.exe
-Icon=mgba
-Terminal=false
-Type=Application
-Categories=Game;Emulator;
-EOF
-    success "BGB installé dans $BGB_DIR — lancé via Wine"
-fi
-
-#  CONFIGURATION SESSION (KDE ou XFCE)
-# ══════════════════════════════════════════════════════════
-banner "CONFIGURATION SESSION — ${XDG_CURRENT_DESKTOP:-inconnue}"
-
-if [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]]; then
-    info "Session KDE détectée"
-
-    # ── Thème Breeze Sombre ──────────────────────────
-    info "Application du thème Breeze Sombre..."
-    mkdir -p ~/.config
-    # Écriture directe dans kdeglobals (kwriteconfig5 non disponible sans paquet extra)
-    cat > ~/.config/kdeglobals << EOF
-[General]
-ColorScheme=BreezeDark
-
-[KDE]
-LookAndFeelPackage=org.kde.breezedark.desktop
-widgetStyle=Breeze
-EOF
-    success "Thème Breeze Sombre appliqué"
-
-    # ── Langue anglais US (clavier FR conservé) ──────
-    info "Langue KDE → English (US) — clavier FR conservé..."
-    mkdir -p ~/.config
-    cat > ~/.config/plasma-localerc << EOF
-[Formats]
-LANG=en_US.UTF-8
-LC_ADDRESS=en_US.UTF-8
-LC_MEASUREMENT=en_US.UTF-8
-LC_MONETARY=en_US.UTF-8
-LC_NAME=en_US.UTF-8
-LC_NUMERIC=en_US.UTF-8
-LC_PAPER=en_US.UTF-8
-LC_TELEPHONE=en_US.UTF-8
-LC_TIME=en_US.UTF-8
-
-[Translations]
-LANGUAGE=en_US
-EOF
-    success "Langue KDE configurée : English (US) — clavier AZERTY conservé"
-
-    # ── Langue SDDM via drop-in systemd ──────────────
-    info "Langue SDDM → English (US) via systemd drop-in..."
-    sudo mkdir -p /etc/systemd/system/sddm.service.d
-    sudo bash -c 'cat > /etc/systemd/system/sddm.service.d/locale.conf << EOF
-[Service]
-Environment=LANG=en_US.UTF-8
-EOF'
-    sudo systemctl daemon-reload
-    success "Langue SDDM configurée via systemd drop-in"
-
-    # ── Fond d'écran SDDM ────────────────────────────
-    info "Application du fond d'écran SDDM (Breeze Dark)..."
-    WALLPAPER="/usr/share/wallpapers/Next/contents/images_dark/5120x2880.png"
-    if sudo test -f "$WALLPAPER"; then
-        sudo bash -c "cat > /usr/share/sddm/themes/breeze/theme.conf.user << EOF
-[General]
-background=$WALLPAPER
-EOF"
-        success "Fond SDDM appliqué : $WALLPAPER"
-    else
-        warn "Wallpaper introuvable : $WALLPAPER — fond SDDM par défaut conservé."
-    fi
-
-elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
-    info "Session XFCE détectée"
-
-    # ── Langue anglais US (clavier FR conservé) ──────
-    info "Langue XFCE → English (US) — clavier FR conservé..."
-    # ~/.xprofile est sourcé par XFCE au démarrage de session
-    # On retire toute ligne LANG/LC_ existante puis on ajoute les nouvelles
-    sed -i '/^export LANG=/d;/^export LC_/d;/^export LANGUAGE=/d' ~/.xprofile 2>/dev/null || true
-    cat >> ~/.xprofile << EOF
-
-# Langue English US — ajouté par 2-post-install
-export LANG=en_US.UTF-8
-export LANGUAGE=en_US
-export LC_ALL=en_US.UTF-8
-EOF
-    success "Langue XFCE configurée : English (US) — clavier AZERTY conservé"
-
-else
-    warn "Session non reconnue (${XDG_CURRENT_DESKTOP:-non définie}) — configuration thème/langue ignorée."
-    warn "Lance ce script depuis une session KDE ou XFCE."
-fi
-
-# ══════════════════════════════════════════════════════════
-#  FIN
-# ══════════════════════════════════════════════════════════
-echo -e "
-${GREEN}${BOLD}"
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║           ✅ POST-INSTALLATION TERMINÉE !                    ║"
-echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  LOGICIELS INSTALLÉS :                                      ║"
-echo "║                                                              ║"
-echo "║  Outils AUR / Système                                        ║"
-echo "║    yay              → AUR helper                            ║"
-echo "║    ProtonPlus        → gestionnaire Proton/Wine              ║"
-echo "║    Gear Lever        → gestionnaire AppImages                ║"
-echo "║    wine-staging      → compatibilité Windows                 ║"
-echo "║    Waterfox          → navigateur (tarball officiel)         ║"
-echo "║                                                              ║"
-echo "║  Émulateurs — AppImages (~/Applications/)                    ║"
-echo "║    RetroArch         → multi-systèmes (nightly)             ║"
-echo "║    PCSX2             → PlayStation 2                        ║"
-echo "║    mGBA              → Game Boy / GBA                       ║"
-echo "║    Cemu              → Wii U                                ║"
-echo "║    DuckStation       → PlayStation 1                        ║"
-echo "║    PPSSPP            → PSP                                  ║"
-echo "║    melonDS           → Nintendo DS                          ║"
-echo "║    Ryujinx Canary    → Nintendo Switch                      ║"
-echo "║                                                              ║"
-echo "║  PC Ports HarbourMasters (~/Applications/) ⚠️ ROM requise   ║"
-echo "║    Ship of Harkinian → Zelda: Ocarina of Time               ║"
-echo "║    2 Ship 2 Harkinian→ Zelda: Majora's Mask                 ║"
-echo "║    Starship           → Star Fox 64                         ║"
-echo "║    SpaghettiKart      → Mario Kart 64                       ║"
-echo "║    Ghostship          → Super Mario 64                      ║"
-echo "║                                                              ║"
-echo "║  Émulateurs — Packages système                               ║"
-echo "║    Dolphin            → GameCube / Wii (compilé source)     ║"
-echo "║    BGB                → Game Boy (Windows .exe via Wine)    ║"
-echo "║                                                              ║"
-echo "║  Source Ports                                                ║"
-echo "║    vkQuake            → Quake 1 Vulkan (compilé source)     ║"
-echo "║    UZDoom             → Doom engine (AppImage)              ║"
-echo "║    Yamagi Quake II    → Quake II (AppImage)                 ║"
-echo "║    ECWolf             → Wolfenstein 3D (Docker/source)      ║"
-echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  GPU — envycontrol (laptop uniquement) :                    ║"
-echo "║    envycontrol --query           → mode GPU actuel          ║"
-echo "║    sudo envycontrol -s hybrid    → AMD + NVIDIA à la demande║"
-echo "║    sudo envycontrol -s nvidia    → NVIDIA uniquement        ║"
-echo "║    sudo envycontrol -s integrated→ AMD uniquement (batterie)║"
-echo "╠══════════════════════════════════════════════════════════════╣"
-echo "║  STEAM — lancer un jeu sur NVIDIA :                         ║"
-echo "║    Propriétés du jeu → Options de lancement :               ║"
-echo "║    prime-run %command%                                      ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
-
-<<<<<<< HEAD
 
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
@@ -1170,6 +972,195 @@ echo "║    prime-run %command%                                      ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-=======
->>>>>>> 26a90e076a659dba278cfef05d7d7db448aa8d16
+
+# ── Wine Staging & outils (pacman) ───────────────────────
+info "Installation de Wine Staging..."
+sudo pacman -S --noconfirm \
+    wine-staging \
+    wine-gecko \
+    wine-mono \
+    winetricks
+success "Wine Staging installé"
+
+# ── ProtonPlus (AUR) ─────────────────────────────────────
+info "Installation de ProtonPlus (gestionnaire Proton/Wine)..."
+if command -v protonplus &>/dev/null; then
+    success "ProtonPlus déjà installé, skip."
+else
+    yay -S --noconfirm protonplus
+    success "ProtonPlus installé"
+fi
+
+# ── BGB — Game Boy (binaire Windows via Wine) ────────────
+info "Installation de BGB (émulateur Game Boy, binaire Windows via Wine)..."
+BGB_DIR="$HOME/.local/share/bgb"
+if [[ -f "$BGB_DIR/bgb.exe" ]]; then
+    success "BGB déjà installé, skip."
+else
+    mkdir -p "$BGB_DIR"
+    mkdir -p "$HOME/.local/bin"
+    curl -fsSL --progress-bar -o /tmp/bgb.zip "https://bgb.bircd.org/bgb.zip"
+    unzip -o /tmp/bgb.zip -d "$BGB_DIR"
+    rm /tmp/bgb.zip
+    cat > "$HOME/.local/bin/bgb" << EOF
+#!/bin/bash
+wine "$BGB_DIR/bgb.exe" "\$@"
+EOF
+    chmod +x "$HOME/.local/bin/bgb"
+    mkdir -p "$HOME/.local/share/applications"
+    cat > "$HOME/.local/share/applications/bgb.desktop" << EOF
+[Desktop Entry]
+Name=BGB
+GenericName=Game Boy Emulator
+Exec=wine $BGB_DIR/bgb.exe
+Icon=mgba
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+EOF
+    success "BGB installé dans $BGB_DIR — lancé via Wine"
+fi
+
+#  CONFIGURATION SESSION (KDE ou XFCE)
+# ══════════════════════════════════════════════════════════
+banner "CONFIGURATION SESSION — ${XDG_CURRENT_DESKTOP:-inconnue}"
+
+if [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]]; then
+    info "Session KDE détectée"
+
+    # ── Thème Breeze Sombre ──────────────────────────
+    info "Application du thème Breeze Sombre..."
+    mkdir -p ~/.config
+    # Écriture directe dans kdeglobals (kwriteconfig5 non disponible sans paquet extra)
+    cat > ~/.config/kdeglobals << EOF
+[General]
+ColorScheme=BreezeDark
+
+[KDE]
+LookAndFeelPackage=org.kde.breezedark.desktop
+widgetStyle=Breeze
+EOF
+    success "Thème Breeze Sombre appliqué"
+
+    # ── Langue anglais US (clavier FR conservé) ──────
+    info "Langue KDE → English (US) — clavier FR conservé..."
+    mkdir -p ~/.config
+    cat > ~/.config/plasma-localerc << EOF
+[Formats]
+LANG=en_US.UTF-8
+LC_ADDRESS=en_US.UTF-8
+LC_MEASUREMENT=en_US.UTF-8
+LC_MONETARY=en_US.UTF-8
+LC_NAME=en_US.UTF-8
+LC_NUMERIC=en_US.UTF-8
+LC_PAPER=en_US.UTF-8
+LC_TELEPHONE=en_US.UTF-8
+LC_TIME=en_US.UTF-8
+
+[Translations]
+LANGUAGE=en_US
+EOF
+    success "Langue KDE configurée : English (US) — clavier AZERTY conservé"
+
+    # ── Langue SDDM via drop-in systemd ──────────────
+    info "Langue SDDM → English (US) via systemd drop-in..."
+    sudo mkdir -p /etc/systemd/system/sddm.service.d
+    sudo bash -c 'cat > /etc/systemd/system/sddm.service.d/locale.conf << EOF
+[Service]
+Environment=LANG=en_US.UTF-8
+EOF'
+    sudo systemctl daemon-reload
+    success "Langue SDDM configurée via systemd drop-in"
+
+    # ── Fond d'écran SDDM ────────────────────────────
+    info "Application du fond d'écran SDDM (Breeze Dark)..."
+    WALLPAPER="/usr/share/wallpapers/Next/contents/images_dark/5120x2880.png"
+    if sudo test -f "$WALLPAPER"; then
+        sudo bash -c "cat > /usr/share/sddm/themes/breeze/theme.conf.user << EOF
+[General]
+background=$WALLPAPER
+EOF"
+        success "Fond SDDM appliqué : $WALLPAPER"
+    else
+        warn "Wallpaper introuvable : $WALLPAPER — fond SDDM par défaut conservé."
+    fi
+
+elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
+    info "Session XFCE détectée"
+
+    # ── Langue anglais US (clavier FR conservé) ──────
+    info "Langue XFCE → English (US) — clavier FR conservé..."
+    # ~/.xprofile est sourcé par XFCE au démarrage de session
+    # On retire toute ligne LANG/LC_ existante puis on ajoute les nouvelles
+    sed -i '/^export LANG=/d;/^export LC_/d;/^export LANGUAGE=/d' ~/.xprofile 2>/dev/null || true
+    cat >> ~/.xprofile << EOF
+
+# Langue English US — ajouté par 2-post-install
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US
+export LC_ALL=en_US.UTF-8
+EOF
+    success "Langue XFCE configurée : English (US) — clavier AZERTY conservé"
+
+else
+    warn "Session non reconnue (${XDG_CURRENT_DESKTOP:-non définie}) — configuration thème/langue ignorée."
+    warn "Lance ce script depuis une session KDE ou XFCE."
+fi
+
+# ══════════════════════════════════════════════════════════
+#  FIN
+# ══════════════════════════════════════════════════════════
+echo -e "
+${GREEN}${BOLD}"
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║           ✅ POST-INSTALLATION TERMINÉE !                    ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  LOGICIELS INSTALLÉS :                                      ║"
+echo "║                                                              ║"
+echo "║  Outils AUR / Système                                        ║"
+echo "║    yay              → AUR helper                            ║"
+echo "║    ProtonPlus        → gestionnaire Proton/Wine              ║"
+echo "║    Gear Lever        → gestionnaire AppImages                ║"
+echo "║    wine-staging      → compatibilité Windows                 ║"
+echo "║    Waterfox          → navigateur (tarball officiel)         ║"
+echo "║                                                              ║"
+echo "║  Émulateurs — AppImages (~/Applications/)                    ║"
+echo "║    RetroArch         → multi-systèmes (nightly)             ║"
+echo "║    PCSX2             → PlayStation 2                        ║"
+echo "║    mGBA              → Game Boy / GBA                       ║"
+echo "║    Cemu              → Wii U                                ║"
+echo "║    DuckStation       → PlayStation 1                        ║"
+echo "║    PPSSPP            → PSP                                  ║"
+echo "║    melonDS           → Nintendo DS                          ║"
+echo "║    Ryujinx Canary    → Nintendo Switch                      ║"
+echo "║                                                              ║"
+echo "║  PC Ports HarbourMasters (~/Applications/) ⚠️ ROM requise   ║"
+echo "║    Ship of Harkinian → Zelda: Ocarina of Time               ║"
+echo "║    2 Ship 2 Harkinian→ Zelda: Majora's Mask                 ║"
+echo "║    Starship           → Star Fox 64                         ║"
+echo "║    SpaghettiKart      → Mario Kart 64                       ║"
+echo "║    Ghostship          → Super Mario 64                      ║"
+echo "║                                                              ║"
+echo "║  Émulateurs — Packages système                               ║"
+echo "║    Dolphin            → GameCube / Wii (compilé source)     ║"
+echo "║    BGB                → Game Boy (Windows .exe via Wine)    ║"
+echo "║                                                              ║"
+echo "║  Source Ports                                                ║"
+echo "║    vkQuake            → Quake 1 Vulkan (compilé source)     ║"
+echo "║    UZDoom             → Doom engine (AppImage)              ║"
+echo "║    Yamagi Quake II    → Quake II (AppImage)                 ║"
+echo "║    ECWolf             → Wolfenstein 3D (Docker/source)      ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  GPU — envycontrol (laptop uniquement) :                    ║"
+echo "║    envycontrol --query           → mode GPU actuel          ║"
+echo "║    sudo envycontrol -s hybrid    → AMD + NVIDIA à la demande║"
+echo "║    sudo envycontrol -s nvidia    → NVIDIA uniquement        ║"
+echo "║    sudo envycontrol -s integrated→ AMD uniquement (batterie)║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  STEAM — lancer un jeu sur NVIDIA :                         ║"
+echo "║    Propriétés du jeu → Options de lancement :               ║"
+echo "║    prime-run %command%                                      ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+
 # ── Déconnexion ──────────────────────────────────
