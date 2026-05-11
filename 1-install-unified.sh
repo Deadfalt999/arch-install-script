@@ -227,6 +227,70 @@ LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
 KEYMAP="${_KEYMAP:-fr}"
 
+# ── Sélection des kernels ─────────────────────────────────
+echo ""
+echo -e "${BOLD}Kernels disponibles :${NC}"
+echo -e "  [1] linux       — kernel standard ${GREEN}✓${NC}"
+echo -e "  [2] linux-lts   — kernel Long Term Support ${GREEN}✓${NC}"
+echo -e "  [3] linux-zen   — kernel optimisé performance"
+echo -e "  [4] linux-hardened — kernel sécurisé"
+echo ""
+read -rp "$(echo -e "${YELLOW}Sélection kernels${NC} [1 2]: ")" _KERNEL_SEL
+_KERNEL_SEL="${_KERNEL_SEL:-1 2}"
+KERNELS=""
+[[ "$_KERNEL_SEL" == *"1"* ]] && KERNELS="$KERNELS linux"
+[[ "$_KERNEL_SEL" == *"2"* ]] && KERNELS="$KERNELS linux-lts"
+[[ "$_KERNEL_SEL" == *"3"* ]] && KERNELS="$KERNELS linux-zen"
+[[ "$_KERNEL_SEL" == *"4"* ]] && KERNELS="$KERNELS linux-hardened"
+KERNELS="${KERNELS## }"
+[[ -z "$KERNELS" ]] && KERNELS="linux linux-lts"
+echo -e "  → Kernels retenus : ${GREEN}${KERNELS}${NC}"
+
+# ── Sélection des environnements de bureau ────────────────
+echo ""
+echo -e "${BOLD}Environnements de bureau :${NC}"
+echo -e "  [1] KDE Plasma  — Wayland ${GREEN}✓${NC}"
+echo -e "  [2] XFCE4       — X11, léger ${GREEN}✓${NC}"
+echo -e "  [3] Cinnamon    — X11, stable"
+echo -e "  [4] GNOME       — Wayland"
+echo -e "  [5] MATE        — X11, très léger"
+echo ""
+read -rp "$(echo -e "${YELLOW}Sélection DEs${NC} [1 2]: ")" _DE_SEL
+_DE_SEL="${_DE_SEL:-1 2}"
+INSTALL_KDE=false;      [[ "$_DE_SEL" == *"1"* ]] && INSTALL_KDE=true
+INSTALL_XFCE=false;     [[ "$_DE_SEL" == *"2"* ]] && INSTALL_XFCE=true
+INSTALL_CINNAMON=false; [[ "$_DE_SEL" == *"3"* ]] && INSTALL_CINNAMON=true
+INSTALL_GNOME=false;    [[ "$_DE_SEL" == *"4"* ]] && INSTALL_GNOME=true
+INSTALL_MATE=false;     [[ "$_DE_SEL" == *"5"* ]] && INSTALL_MATE=true
+_DE_NAMES=""
+$INSTALL_KDE      && _DE_NAMES="$_DE_NAMES KDE"
+$INSTALL_XFCE     && _DE_NAMES="$_DE_NAMES XFCE4"
+$INSTALL_CINNAMON && _DE_NAMES="$_DE_NAMES Cinnamon"
+$INSTALL_GNOME    && _DE_NAMES="$_DE_NAMES GNOME"
+$INSTALL_MATE     && _DE_NAMES="$_DE_NAMES MATE"
+echo -e "  → DEs retenus :${GREEN}${_DE_NAMES}${NC}"
+
+# ── Sélection des paquets utilitaires ────────────────────
+echo ""
+echo -e "${BOLD}Paquets utilitaires :${NC}"
+echo -e "  [1] Firefox      ${GREEN}✓${NC}   [2] VLC         ${GREEN}✓${NC}   [3] Steam        ${GREEN}✓${NC}"
+echo -e "  [4] Lutris        ${GREEN}✓${NC}   [5] LibreOffice     [6] GIMP"
+echo -e "  [7] Thunderbird      [8] VSCode (AUR)    [9] Kdenlive"
+echo -e "  [0] Tout sélectionner"
+echo ""
+read -rp "$(echo -e "${YELLOW}Sélection paquets${NC} [1 2 3 4]: ")" _PKG_SEL
+_PKG_SEL="${_PKG_SEL:-1 2 3 4}"
+[[ "$_PKG_SEL" == *"0"* ]] && _PKG_SEL="1 2 3 4 5 6 7 8 9"
+PKG_FIREFOX=false;     [[ "$_PKG_SEL" == *"1"* ]] && PKG_FIREFOX=true
+PKG_VLC=false;         [[ "$_PKG_SEL" == *"2"* ]] && PKG_VLC=true
+PKG_STEAM=false;       [[ "$_PKG_SEL" == *"3"* ]] && PKG_STEAM=true
+PKG_LUTRIS=false;      [[ "$_PKG_SEL" == *"4"* ]] && PKG_LUTRIS=true
+PKG_LIBREOFFICE=false; [[ "$_PKG_SEL" == *"5"* ]] && PKG_LIBREOFFICE=true
+PKG_GIMP=false;        [[ "$_PKG_SEL" == *"6"* ]] && PKG_GIMP=true
+PKG_THUNDERBIRD=false; [[ "$_PKG_SEL" == *"7"* ]] && PKG_THUNDERBIRD=true
+PKG_VSCODE=false;      [[ "$_PKG_SEL" == *"8"* ]] && PKG_VSCODE=true
+PKG_KDENLIVE=false;    [[ "$_PKG_SEL" == *"9"* ]] && PKG_KDENLIVE=true
+
 echo ""
 echo -e "${BOLD}Configuration retenue :${NC}"
 echo -e "  Config   : ${GREEN}${_CONFIG_LABELS[$CONFIG]}${NC}"
@@ -349,7 +413,7 @@ if ! $_IS_VM; then
 fi
 
 pacstrap -K /mnt \
-    base base-devel linux linux-lts linux-firmware \
+    base base-devel ${KERNELS} linux-firmware \
     ${_UCODE_PKG} \
     networkmanager \
     grub efibootmgr \
@@ -380,6 +444,35 @@ info()    { echo -e "\n\${BLUE}[INFO]\${NC} \$1"; }
 success() { echo -e "\${GREEN}[OK]\${NC} \$1"; }
 warn()    { echo -e "\${YELLOW}[WARN]\${NC} \$1"; }
 banner()  { echo -e "\n\${BOLD}══ \$1 ══\${NC}"; }
+
+# Variables passées depuis le script principal
+TIMEZONE="${TIMEZONE}"
+LOCALE="${LOCALE}"
+KEYMAP="${KEYMAP}"
+HOSTNAME="${HOSTNAME}"
+USERNAME="${USERNAME}"
+ROOT_PASS="${ROOT_PASS}"
+USER_PASS="${USER_PASS}"
+CONFIG="${CONFIG}"
+_IS_VM="${_IS_VM}"
+_NEED_NVIDIA="${_NEED_NVIDIA}"
+_NEED_AMD_GPU="${_NEED_AMD_GPU}"
+_OPTIMUS="${_OPTIMUS}"
+_CPU="${_CPU}"
+INSTALL_KDE="${INSTALL_KDE}"
+INSTALL_XFCE="${INSTALL_XFCE}"
+INSTALL_CINNAMON="${INSTALL_CINNAMON}"
+INSTALL_GNOME="${INSTALL_GNOME}"
+INSTALL_MATE="${INSTALL_MATE}"
+PKG_FIREFOX="${PKG_FIREFOX}"
+PKG_VLC="${PKG_VLC}"
+PKG_STEAM="${PKG_STEAM}"
+PKG_LUTRIS="${PKG_LUTRIS}"
+PKG_LIBREOFFICE="${PKG_LIBREOFFICE}"
+PKG_GIMP="${PKG_GIMP}"
+PKG_THUNDERBIRD="${PKG_THUNDERBIRD}"
+PKG_VSCODE="${PKG_VSCODE}"
+PKG_KDENLIVE="${PKG_KDENLIVE}"
 
 # ── Timezone ──────────────────────────────────────────────
 banner "TIMEZONE"
@@ -525,35 +618,77 @@ pacman -S --noconfirm \
 success "Pipewire installé"
 
 # ── KDE Plasma ────────────────────────────────────────────
-banner "KDE PLASMA"
-pacman -S --noconfirm \
-    plasma-meta sddm \
-    dolphin konsole kate ark gwenview okular spectacle \
-    --disable-download-timeout
-success "KDE Plasma installé"
+if [[ "${INSTALL_KDE}" == "true" ]]; then
+    banner "KDE PLASMA"
+    pacman -S --noconfirm \
+        plasma-meta sddm \
+        dolphin konsole kate ark gwenview okular spectacle yakuake \
+        --disable-download-timeout
+    success "KDE Plasma installé"
+fi
 
-# ── DE supplémentaires ────────────────────────────────────
-banner "XFCE4 & CINNAMON"
-pacman -S --noconfirm \
-    xfce4 xfce4-goodies \
-    --disable-download-timeout
-pacman -S --noconfirm \
-    cinnamon \
-    --disable-download-timeout
-success "XFCE4 et Cinnamon installés"
+# ── XFCE4 ─────────────────────────────────────────────────
+if [[ "${INSTALL_XFCE}" == "true" ]]; then
+    banner "XFCE4"
+    pacman -S --noconfirm \
+        xfce4 xfce4-goodies \
+        --disable-download-timeout
+    success "XFCE4 installé"
+fi
 
-# ── Logiciels ─────────────────────────────────────────────
+# ── Cinnamon ──────────────────────────────────────────────
+if [[ "${INSTALL_CINNAMON}" == "true" ]]; then
+    banner "CINNAMON"
+    pacman -S --noconfirm \
+        cinnamon \
+        --disable-download-timeout
+    success "Cinnamon installé"
+fi
+
+# ── GNOME ─────────────────────────────────────────────────
+if [[ "${INSTALL_GNOME}" == "true" ]]; then
+    banner "GNOME"
+    pacman -S --noconfirm \
+        gnome gnome-extra \
+        --disable-download-timeout
+    success "GNOME installé"
+fi
+
+# ── MATE ──────────────────────────────────────────────────
+if [[ "${INSTALL_MATE}" == "true" ]]; then
+    banner "MATE"
+    pacman -S --noconfirm \
+        mate mate-extra \
+        --disable-download-timeout
+    success "MATE installé"
+fi
+
+# Gestionnaire de connexion — SDDM si KDE, sinon lightdm
+if [[ "${INSTALL_KDE}" == "false" ]]; then
+    pacman -S --noconfirm lightdm lightdm-gtk-greeter --disable-download-timeout
+    systemctl enable lightdm 2>/dev/null || true
+fi
+
+# ── Paquets utilitaires ───────────────────────────────────
 banner "LOGICIELS SUPPLÉMENTAIRES"
-pacman -S --noconfirm \
-    firefox vlc htop fastfetch \
-    --disable-download-timeout
-pacman -S --noconfirm \
-    yakuake \
-    --disable-download-timeout
-pacman -S --noconfirm \
-    steam \
-    --disable-download-timeout
-success "Logiciels installés"
+_EXTRA_PKGS=""
+[[ "${PKG_FIREFOX}"     == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS firefox"
+[[ "${PKG_VLC}"         == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS vlc"
+[[ "${PKG_STEAM}"       == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS steam"
+[[ "${PKG_LUTRIS}"      == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS lutris"
+[[ "${PKG_LIBREOFFICE}" == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS libreoffice-fresh"
+[[ "${PKG_GIMP}"        == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS gimp"
+[[ "${PKG_THUNDERBIRD}" == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS thunderbird"
+[[ "${PKG_KDENLIVE}"    == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS kdenlive"
+_EXTRA_PKGS="$_EXTRA_PKGS htop fastfetch"
+
+if [[ -n "${_EXTRA_PKGS## }" ]]; then
+    pacman -S --noconfirm ${_EXTRA_PKGS} --disable-download-timeout
+    success "Logiciels installés"
+fi
+
+# VSCode via AUR (après yay — non disponible ici, noter pour script 2)
+[[ "${PKG_VSCODE}" == "true" ]] && echo "# VSCode à installer via AUR dans le script 2" >> /root/post-install-notes.txt
 
 # ── SDDM ──────────────────────────────────────────────────
 banner "SDDM"
