@@ -497,7 +497,7 @@ else
         unzip -o /tmp/ghostship-linux.zip -d "$GHOSTSHIP_DIR"
         rm /tmp/ghostship-linux.zip
         # L'AppImage est dans le zip
-        APPIMAGE=$(find "$GHOSTSHIP_DIR" -name "*.AppImage" | head -1)
+        APPIMAGE=$(find "$GHOSTSHIP_DIR" -iname "*.appimage" | head -1)
         if [[ -n "$APPIMAGE" ]]; then
             chmod +x "$APPIMAGE"
             cp "$APPIMAGE" "$APPDIR/Ghostship.AppImage"
@@ -581,7 +581,8 @@ EOF
     _make_desktop "vkQuake" "Quake (Vulkan)" "$HOME/.local/share/vkquake-source/build/vkquake" "$ICONDIR/vkquake.png"
 
 # ECWolf — binaire dans ~/.local/share/ecwolf/
-_ECWOLF_BIN=$(find "$HOME/.local/share/ecwolf" -name "ecwolf" -type f 2>/dev/null | head -1)
+_ECWOLF_BIN=""
+_ECWOLF_BIN=$(find "$HOME/.local/share/ecwolf" -name "ecwolf" -type f 2>/dev/null | head -1) || true
 if [[ -n "$_ECWOLF_BIN" ]]; then
     chmod +x "$_ECWOLF_BIN" 2>/dev/null || true
     _make_desktop "ECWolf" "Wolfenstein 3D" "$_ECWOLF_BIN" "applications-games"
