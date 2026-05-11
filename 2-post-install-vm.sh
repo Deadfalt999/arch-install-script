@@ -126,42 +126,6 @@ info "Installation de fuse2 (requis pour les AppImages)..."
 sudo pacman -S --noconfirm fuse2 || true
 
 # ── Fonction de téléchargement AppImage depuis GitHub ────
-download_appimage() {
-    local repo="$1"
-    local pattern="$2"
-    local name="$3"
-    local appname="${name%.AppImage}"
-    info "Téléchargement de $name (AppImage)..."
-    if [[ -f "$APPDIR/$name" ]]; then
-        success "$name déjà présent, skip."
-        return
-    fi
-    local url
-    url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
-        | grep -o '"browser_download_url": *"[^"]*'"$pattern"'[^"]*"' \
-        | grep -v 'zsync\|debug\|symbols' \
-        | head -1 \
-        | cut -d'"' -f4)
-    if [[ -z "$url" ]]; then
-        warn "URL introuvable pour $name — passage en mode pacman."
-        return 1
-    fi
-    curl -fsSL --progress-bar -o "$APPDIR/$name" "$url"
-    chmod +x "$APPDIR/$name"
-    # Créer un .desktop pour l'intégration KDE
-    mkdir -p "$HOME/.local/share/applications"
-    cat > "$HOME/.local/share/applications/${appname}.desktop" << EOF
-[Desktop Entry]
-Name=$appname
-Exec=$APPDIR/$name
-Icon=$appname
-Terminal=false
-Type=Application
-Categories=Game;
-EOF
-    success "$name installé dans $APPDIR/ — raccourci KDE créé"
-}
-
 
 # ── AppImages — téléchargées depuis GitHub ───────────────
 # RetroArch (nightly officiel)
@@ -197,7 +161,7 @@ EOF
 fi
 
 download_appimage "cemu-project/Cemu"     "AppImage"   "Cemu.AppImage"         || yay -S --noconfirm cemu-bin
-download_appimage "stenzek/duckstation"   "AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
+download_appimage "stenzek/duckstation"   "x86_64.AppImage"   "duckstation-qt.AppImage" || yay -S --noconfirm duckstation-qt-bin
 
 
 # ── Dolphin (GameCube / Wii) — compilation via Docker ────
@@ -326,7 +290,7 @@ fi
 
 
 # ── AppImage — PPSSPP (PSP) ───────────────────────────────
-download_appimage "hrydgard/ppsspp" "AppImage" "PPSSPP.AppImage" || sudo pacman -S --noconfirm ppsspp
+download_appimage "hrydgard/ppsspp" "anylinux-x86_64.AppImage" "PPSSPP.AppImage" || sudo pacman -S --noconfirm ppsspp
 
 # ── AppImage — Ryubing/Canary (Nintendo Switch) ──────────
 info "Téléchargement de Ryujinx Canary (AppImage officielle Ryubing)..."
@@ -368,15 +332,19 @@ else
         curl -fsSL --progress-bar -o /tmp/openmw-linux.tar.gz "$OPENMW_URL"
         tar -xzf /tmp/openmw-linux.tar.gz -C "$OPENMW_DIR" --strip-components=1
         rm /tmp/openmw-linux.tar.gz
+        # Trouver le binaire réel après extraction
+        OPENMW_BIN=$(find "$OPENMW_DIR" -name "openmw-launcher" -type f 2>/dev/null | head -1)
+        OPENMW_BIN="${OPENMW_BIN:-$OPENMW_DIR/openmw-launcher}"
+        chmod +x "$OPENMW_BIN" 2>/dev/null || true
         mkdir -p "$HOME/.local/bin"
-        ln -sf "$OPENMW_DIR/openmw-launcher" "$HOME/.local/bin/openmw-launcher"
-        ln -sf "$OPENMW_DIR/openmw" "$HOME/.local/bin/openmw"
+        ln -sf "$OPENMW_BIN" "$HOME/.local/bin/openmw-launcher"
+        ln -sf "$(find "$OPENMW_DIR" -name "openmw" -type f 2>/dev/null | head -1)" "$HOME/.local/bin/openmw"
         mkdir -p "$HOME/.local/share/applications"
         cat > "$HOME/.local/share/applications/openmw.desktop" << EOF
 [Desktop Entry]
 Name=OpenMW
 GenericName=Morrowind Engine
-Exec=$OPENMW_DIR/openmw-launcher
+Exec=$OPENMW_BIN
 Icon=openmw-launcher
 Terminal=false
 Type=Application
@@ -410,16 +378,19 @@ else
         curl -fsSL --progress-bar -o /tmp/daggerfall-unity-linux.zip "$DFU_URL"
         unzip -o /tmp/daggerfall-unity-linux.zip -d "$DFU_DIR"
         rm /tmp/daggerfall-unity-linux.zip
-        chmod +x "$DFU_DIR/DaggerfallUnity" 2>/dev/null || true
+        # Trouver le binaire réel après extraction (peut être dans un sous-dossier)
+        DFU_BIN=$(find "$DFU_DIR" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
+        DFU_BIN="${DFU_BIN:-$DFU_DIR/DaggerfallUnity}"
+        chmod +x "$DFU_BIN" 2>/dev/null || true
         mkdir -p "$HOME/.local/bin"
-        ln -sf "$DFU_DIR/DaggerfallUnity" "$HOME/.local/bin/daggerfall-unity"
+        ln -sf "$DFU_BIN" "$HOME/.local/bin/daggerfall-unity"
         mkdir -p "$HOME/.local/share/applications"
         cat > "$HOME/.local/share/applications/daggerfall-unity.desktop" << EOF
 [Desktop Entry]
 Name=Daggerfall Unity
 GenericName=TES II: Daggerfall
-Exec=$DFU_DIR/DaggerfallUnity
-Icon=daggerfall
+Exec=$DFU_BIN
+Icon=applications-games
 Terminal=false
 Type=Application
 Categories=Game;
@@ -536,16 +507,25 @@ _fetch_icon "duckstation"    "https://raw.githubusercontent.com/stenzek/duckstat
 _fetch_icon "uzdoom"         "https://raw.githubusercontent.com/UZDoom/UZDoom/master/src/posix/sdl/icon.png"
 _fetch_icon "pcsx2"          "https://raw.githubusercontent.com/PCSX2/pcsx2/master/pcsx2/gui/Resources/AppIcon256.png"
 _fetch_icon "cemu"           "https://raw.githubusercontent.com/cemu-project/Cemu/main/src/resource/cemu.png"
+_fetch_icon "dolphin"        "https://raw.githubusercontent.com/dolphin-emu/dolphin/master/Data/dolphin.png"
+_fetch_icon "bgb"            "https://raw.githubusercontent.com/mgba-emu/mgba/master/res/mgba-256.png"
+_fetch_icon "vkquake"        "https://raw.githubusercontent.com/Novum/vkQuake/master/Quake/QuakeEX.kpf.icon.png"
+_fetch_icon "ecwolf"         "https://raw.githubusercontent.com/gitbub/ecwolf/master/src/posix/sdl/icons/icon.svg" 2>/dev/null || true
 
-# Fonction utilitaire
+# Fonction utilitaire — APPIMAGE_EXTRACT_AND_RUN=1 évite le besoin de fuse2
 _make_desktop() {
     local name="$1" generic="$2" exec="$3" icon="$4" categories="${5:-Game;}"
     local file="$HOME/.local/share/applications/${name// /-}.desktop"
+    # Wrapper pour AppImages : évite les problèmes FUSE
+    local exec_cmd="$exec"
+    if [[ "$exec" == *.AppImage ]]; then
+        exec_cmd="env APPIMAGE_EXTRACT_AND_RUN=1 $exec"
+    fi
     cat > "$file" << EOF
 [Desktop Entry]
 Name=$name
 GenericName=$generic
-Exec=$exec
+Exec=$exec_cmd
 Icon=$icon
 Terminal=false
 Type=Application
@@ -553,7 +533,7 @@ Categories=$categories
 EOF
 }
 
-# AppImages
+# AppImages — Émulateurs
 [[ -f "$APPDIR/RetroArch.AppImage" ]]       && _make_desktop "RetroArch"          "Multi-system Emulator"       "$APPDIR/RetroArch.AppImage"       "$ICONDIR/retroarch.png"
 [[ -f "$APPDIR/mGBA.AppImage" ]]            && _make_desktop "mGBA"               "Game Boy / GBA Emulator"     "$APPDIR/mGBA.AppImage"            "$ICONDIR/mgba.png"
 [[ -f "$APPDIR/melonDS.AppImage" ]]         && _make_desktop "melonDS"            "Nintendo DS Emulator"        "$APPDIR/melonDS.AppImage"         "$ICONDIR/melonds.png"
@@ -562,8 +542,31 @@ EOF
 [[ -f "$APPDIR/duckstation-qt.AppImage" ]]  && _make_desktop "DuckStation"        "PlayStation 1 Emulator"      "$APPDIR/duckstation-qt.AppImage"  "$ICONDIR/duckstation.png"
 [[ -f "$APPDIR/pcsx2-Qt.AppImage" ]]        && _make_desktop "PCSX2"              "PlayStation 2 Emulator"      "$APPDIR/pcsx2-Qt.AppImage"        "$ICONDIR/pcsx2.png"
 [[ -f "$APPDIR/Cemu.AppImage" ]]            && _make_desktop "Cemu"               "Wii U Emulator"              "$APPDIR/Cemu.AppImage"            "$ICONDIR/cemu.png"
-[[ -f "$APPDIR/YamagiQ2.AppImage" ]]        && _make_desktop "Yamagi Quake II"    "Quake II Source Port"        "$APPDIR/YamagiQ2.AppImage"        "quake2"
+
+# AppImages — Source Ports
+[[ -f "$APPDIR/YamagiQ2.AppImage" ]]        && _make_desktop "Yamagi Quake II"    "Quake II Source Port"        "$APPDIR/YamagiQ2.AppImage"        "applications-games"
 [[ -f "$APPDIR/UZDoom.AppImage" ]]          && _make_desktop "UZDoom"             "Doom Engine"                 "$APPDIR/UZDoom.AppImage"          "$ICONDIR/uzdoom.png"
+
+# Source Ports compilés
+[[ -f "$HOME/.local/share/vkquake-source/build/vkquake" ]] && \
+    _make_desktop "vkQuake" "Quake (Vulkan)" "$HOME/.local/share/vkquake-source/build/vkquake" "$ICONDIR/vkquake.png"
+
+# ECWolf — binaire dans ~/.local/share/ecwolf/
+_ECWOLF_BIN=$(find "$HOME/.local/share/ecwolf" -name "ecwolf" -type f 2>/dev/null | head -1)
+if [[ -n "$_ECWOLF_BIN" ]]; then
+    chmod +x "$_ECWOLF_BIN" 2>/dev/null || true
+    _make_desktop "ECWolf" "Wolfenstein 3D" "$_ECWOLF_BIN" "applications-games"
+fi
+
+# BGB — Game Boy via Wine
+[[ -f "$HOME/.local/share/bgb/bgb.exe" ]] && \
+    _make_desktop "BGB" "Game Boy Emulator" "wine $HOME/.local/share/bgb/bgb.exe" "$ICONDIR/bgb.png"
+
+# Dolphin
+_DOLPHIN_BIN=$(find "$HOME/.local/share/dolphin-bin" -name "dolphin-emu" -type f 2>/dev/null | head -1)
+if [[ -n "$_DOLPHIN_BIN" ]]; then
+    _make_desktop "Dolphin" "GameCube / Wii Emulator" "$_DOLPHIN_BIN" "$ICONDIR/dolphin.png"
+fi
 
 # HarbourMasters
 [[ -f "$APPDIR/ShipOfHarkinian.AppImage" ]] && _make_desktop "Ship of Harkinian"  "Zelda: Ocarina of Time"      "$APPDIR/ShipOfHarkinian.AppImage" "applications-games"
@@ -573,19 +576,21 @@ EOF
 [[ -f "$APPDIR/Ghostship.AppImage" ]]       && _make_desktop "Ghostship"          "Super Mario 64"              "$APPDIR/Ghostship.AppImage"       "applications-games"
 
 # OpenMW — chemin dynamique
+_OPENMW_BIN=$(find "$HOME/.local/share/openmw-bin" -name "openmw-launcher" -type f 2>/dev/null | head -1)
 if command -v openmw-launcher &>/dev/null; then
     _make_desktop "OpenMW" "Morrowind Engine" "$(command -v openmw-launcher)" "openmw-launcher"
-elif [[ -f "$HOME/.local/share/openmw-bin/openmw-launcher" ]]; then
-    _make_desktop "OpenMW" "Morrowind Engine" "$HOME/.local/share/openmw-bin/openmw-launcher" "openmw-launcher"
+elif [[ -n "$_OPENMW_BIN" ]]; then
+    _make_desktop "OpenMW" "Morrowind Engine" "$_OPENMW_BIN" "openmw-launcher"
 fi
 
 # Daggerfall Unity — chemin dynamique
-DFU_BIN=$(find "$HOME/.local/share/daggerfall-unity" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
-if [[ -n "$DFU_BIN" ]]; then
-    _make_desktop "Daggerfall Unity" "TES II: Daggerfall" "$DFU_BIN" "applications-games"
+_DFU_BIN=$(find "$HOME/.local/share/daggerfall-unity" -name "DaggerfallUnity" -type f 2>/dev/null | head -1)
+if [[ -n "$_DFU_BIN" ]]; then
+    _make_desktop "Daggerfall Unity" "TES II: Daggerfall" "$_DFU_BIN" "applications-games"
 fi
 
 # Mettre à jour le cache d'icônes KDE
+
 gtk-update-icon-cache "$HOME/.local/share/icons/hicolor/" 2>/dev/null || true
 update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
 
@@ -642,6 +647,10 @@ banner "ECWOLF — COMPILATION VIA DOCKER (Ubuntu 20.04)"
 ECWOLF_DIR="$HOME/.local/share/ecwolf"
 ECWOLF_BIN="$ECWOLF_DIR/ecwolf"
 
+# Dépendances runtime nécessaires pour exécuter le binaire ECWolf compilé sous Ubuntu
+info "Installation des dépendances runtime ECWolf..."
+sudo pacman -S --noconfirm sdl2_mixer sdl2_net sdl2 || true
+
 if [[ -f "$ECWOLF_BIN" ]]; then
     success "ECWolf déjà compilé, skip."
 else
@@ -686,7 +695,7 @@ else
 [Desktop Entry]
 Name=ECWolf
 GenericName=Wolfenstein 3D
-Exec=$ECWOLF_BIN
+Exec=$ECWOLF_BIN --data %f
 Icon=wolf3d
 Terminal=false
 Type=Application
