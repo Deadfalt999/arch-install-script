@@ -54,7 +54,14 @@ echo -e "  NVMe          → ${GREEN}/dev/nvme0n1${NC}"
 echo ""
 
 # Détection automatique du premier disque disponible
-_AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | grep "disk" | head -1 | awk '{print "/dev/"$1}')
+_TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
+case "${_TRAN,,}" in
+    nvme)         _AUTO_DISK="/dev/nvme0n1" ;;
+    sata|ide|usb) _AUTO_DISK="/dev/sda" ;;
+    *)
+        _FALLBACK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print "/dev/"$1}' | head -1)
+        _AUTO_DISK="${_FALLBACK:-/dev/sda}" ;;
+esac
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
 _DISK=""
@@ -234,7 +241,7 @@ success "Miroirs configurés"
 # ══════════════════════════════════════════════════════════
 banner "SYSTÈME DE BASE"
 info "Installation des paquets de base..."
-pacstrap -K /mnt \
+pacstrap -K /mnt --disable-download-timeout \
     base base-devel \
     linux linux-headers linux-firmware \
     linux-lts linux-lts-headers \
@@ -503,7 +510,14 @@ echo -e "  NVMe          → ${GREEN}/dev/nvme0n1${NC}"
 echo ""
 
 # Détection automatique du premier disque disponible
-_AUTO_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | grep "disk" | head -1 | awk '{print "/dev/"$1}')
+_TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
+case "${_TRAN,,}" in
+    nvme)         _AUTO_DISK="/dev/nvme0n1" ;;
+    sata|ide|usb) _AUTO_DISK="/dev/sda" ;;
+    *)
+        _FALLBACK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print "/dev/"$1}' | head -1)
+        _AUTO_DISK="${_FALLBACK:-/dev/sda}" ;;
+esac
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
 _DISK=""
@@ -702,7 +716,7 @@ success "Miroirs configurés"
 # ══════════════════════════════════════════════════════════
 banner "SYSTÈME DE BASE"
 info "Installation des paquets de base..."
-pacstrap -K /mnt \
+pacstrap -K /mnt --disable-download-timeout \
     base base-devel \
     linux linux-headers linux-firmware \
     linux-lts linux-lts-headers \
