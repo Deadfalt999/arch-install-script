@@ -1,17 +1,17 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════╗
-# ║      ARCH LINUX POST-INSTALL — VMware Workstation            ║
+# ║      ARCH LINUX POST-INSTALL — Desktop AMD CPU + AMD GPU     ║
 # ║   À lancer APRÈS le premier démarrage dans KDE Plasma        ║
 # ║   Installe : yay · Waterfox                                  ║
-# ║   ⚠️  Pas d'envycontrol/NVIDIA — version VM uniquement       ║
+# ║   ⚠️  Pas d'envycontrol/NVIDIA — GPU AMD uniquement          ║
 # ╚══════════════════════════════════════════════════════════════╝
-# Usage : bash 2-post-install-vm.sh
+# Usage : bash 2-post-install-desktop.sh
 
 set -uo pipefail
 trap 's=$?; echo -e "\n❌ Erreur ligne $LINENO : $BASH_COMMAND\n"; exit $s' ERR
 
 GREEN='\033[0;32m'; BLUE='\033[0;34m'
-YELLOW='\033[1;33m'; BOLD='\033[1m'; NC='\033[0m'
+YELLOW='\033[1;33m'; RED='\033[0;31m'; BOLD='\033[1m'; NC='\033[0m'
 
 info()    { echo -e "\n${BLUE}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
@@ -88,7 +88,7 @@ MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme
 StartupNotify=true
 EOF
 
-    success "Waterfox $LATEST_VERSION installé"
+    success "Waterfox $LATEST_VERSION installé dans /opt/waterfox"
 fi
 
 
@@ -843,7 +843,6 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]]; then
     # ── Thème Breeze Sombre ──────────────────────────
     info "Application du thème Breeze Sombre..."
     mkdir -p ~/.config
-    # Écriture directe dans kdeglobals (kwriteconfig5 non disponible sans paquet extra)
     cat > ~/.config/kdeglobals << EOF
 [General]
 ColorScheme=BreezeDark
@@ -856,7 +855,6 @@ EOF
 
     # ── Langue anglais US (clavier FR conservé) ──────
     info "Langue KDE → English (US) — clavier FR conservé..."
-    mkdir -p ~/.config
     cat > ~/.config/plasma-localerc << EOF
 [Formats]
 LANG=en_US.UTF-8
@@ -902,12 +900,10 @@ elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
 
     # ── Langue anglais US (clavier FR conservé) ──────
     info "Langue XFCE → English (US) — clavier FR conservé..."
-    # ~/.xprofile est sourcé par XFCE au démarrage de session
-    # On retire toute ligne LANG/LC_ existante puis on ajoute les nouvelles
     sed -i '/^export LANG=/d;/^export LC_/d;/^export LANGUAGE=/d' ~/.xprofile 2>/dev/null || true
     cat >> ~/.xprofile << EOF
 
-# Langue English US — ajouté par 2-post-install
+# Langue English US — ajouté par 2-post-install-desktop
 export LANG=en_US.UTF-8
 export LANGUAGE=en_US
 export LC_ALL=en_US.UTF-8
@@ -1034,7 +1030,6 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" == "KDE" ]]; then
     # ── Thème Breeze Sombre ──────────────────────────
     info "Application du thème Breeze Sombre..."
     mkdir -p ~/.config
-    # Écriture directe dans kdeglobals (kwriteconfig5 non disponible sans paquet extra)
     cat > ~/.config/kdeglobals << EOF
 [General]
 ColorScheme=BreezeDark
@@ -1047,7 +1042,6 @@ EOF
 
     # ── Langue anglais US (clavier FR conservé) ──────
     info "Langue KDE → English (US) — clavier FR conservé..."
-    mkdir -p ~/.config
     cat > ~/.config/plasma-localerc << EOF
 [Formats]
 LANG=en_US.UTF-8
@@ -1093,12 +1087,10 @@ elif [[ "${XDG_CURRENT_DESKTOP:-}" == "XFCE" ]]; then
 
     # ── Langue anglais US (clavier FR conservé) ──────
     info "Langue XFCE → English (US) — clavier FR conservé..."
-    # ~/.xprofile est sourcé par XFCE au démarrage de session
-    # On retire toute ligne LANG/LC_ existante puis on ajoute les nouvelles
     sed -i '/^export LANG=/d;/^export LC_/d;/^export LANGUAGE=/d' ~/.xprofile 2>/dev/null || true
     cat >> ~/.xprofile << EOF
 
-# Langue English US — ajouté par 2-post-install
+# Langue English US — ajouté par 2-post-install-desktop
 export LANG=en_US.UTF-8
 export LANGUAGE=en_US
 export LC_ALL=en_US.UTF-8
