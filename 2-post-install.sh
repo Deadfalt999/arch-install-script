@@ -192,7 +192,7 @@ else
         || warn "RetroArch introuvable — télécharge manuellement depuis buildbot.libretro.com"
 fi
 
-download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2
+download_appimage "PCSX2/pcsx2"          "AppImage"   "pcsx2-Qt.AppImage"     || sudo pacman -S --noconfirm pcsx2-qt
 if [[ -f "$APPDIR/mGBA.AppImage" ]]; then
     success "mGBA déjà présent, skip."
 else
