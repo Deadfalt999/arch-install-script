@@ -360,17 +360,20 @@ else
         rm /tmp/openmw-linux.tar.gz
         # Trouver le binaire réel après extraction
         OPENMW_BIN=$(find "$OPENMW_DIR" -name "openmw-launcher" -type f 2>/dev/null | head -1)
+        OPENMW_EXE=$(find "$OPENMW_DIR" -name "openmw" -type f 2>/dev/null | head -1)
         OPENMW_BIN="${OPENMW_BIN:-$OPENMW_DIR/openmw-launcher}"
+        OPENMW_EXE="${OPENMW_EXE:-$OPENMW_DIR/openmw}"
         chmod +x "$OPENMW_BIN" 2>/dev/null || true
+        chmod +x "$OPENMW_EXE" 2>/dev/null || true
         mkdir -p "$HOME/.local/bin"
-        ln -sf "$OPENMW_BIN" "$HOME/.local/bin/openmw-launcher"
-        ln -sf "$(find "$OPENMW_DIR" -name "openmw" -type f 2>/dev/null | head -1)" "$HOME/.local/bin/openmw"
+        [[ -f "$OPENMW_BIN" ]] && ln -sf "$OPENMW_BIN" "$HOME/.local/bin/openmw-launcher" || true
+        [[ -f "$OPENMW_EXE" ]] && ln -sf "$OPENMW_EXE" "$HOME/.local/bin/openmw" || true
         mkdir -p "$HOME/.local/share/applications"
         cat > "$HOME/.local/share/applications/openmw.desktop" << EOF
 [Desktop Entry]
 Name=OpenMW
 GenericName=Morrowind Engine
-Exec=$OPENMW_BIN
+Exec=${OPENMW_BIN:-openmw-launcher}
 Icon=openmw-launcher
 Terminal=false
 Type=Application
