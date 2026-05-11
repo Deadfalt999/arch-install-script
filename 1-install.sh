@@ -63,19 +63,35 @@ success "Disque trouvé"
 banner "MOTS DE PASSE"
 warn "Les mots de passe ne s'afficheront pas pendant la saisie."
 
+warn_weak_password() {
+    local label="$1"
+    local pwd="$2"
+    if [[ ${#pwd} -lt 6 ]]; then
+        echo -e "\n${RED}${BOLD}⚠️  AVERTISSEMENT DE SÉCURITÉ — Mot de passe $label${NC}"
+        echo -e "${YELLOW}  Le mot de passe saisi contient moins de 6 caractères."
+        echo -e "  Un mot de passe aussi court est extrêmement vulnérable :"
+        echo -e "  il peut être cracké en quelques secondes par force brute."
+        echo -e "  Un bon mot de passe devrait contenir au minimum 12 caractères,"
+        echo -e "  mélanger majuscules, minuscules, chiffres et symboles.${NC}"
+        echo -n "  Continuer quand même avec ce mot de passe peu sécurisé ? (yes/no) : "
+        read WEAK_CONFIRM
+        [[ "$WEAK_CONFIRM" == "yes" ]] || error "Installation annulée — choisis un mot de passe plus fort."
+    fi
+}
+
 echo -n "→ Mot de passe root : "
 read -rs ROOT_PASSWORD; echo
 echo -n "→ Confirmer root   : "
 read -rs ROOT_CONFIRM; echo
 [[ "$ROOT_PASSWORD" == "$ROOT_CONFIRM" ]] || error "Les mots de passe root ne correspondent pas !"
-[[ ${#ROOT_PASSWORD} -ge 6 ]]             || error "Mot de passe root trop court (min 6 caractères)"
+warn_weak_password "root" "$ROOT_PASSWORD"
 
 echo -n "→ Mot de passe pour $USERNAME : "
 read -rs USER_PASSWORD; echo
 echo -n "→ Confirmer $USERNAME         : "
 read -rs USER_CONFIRM; echo
 [[ "$USER_PASSWORD" == "$USER_CONFIRM" ]] || error "Les mots de passe utilisateur ne correspondent pas !"
-[[ ${#USER_PASSWORD} -ge 6 ]]             || error "Mot de passe utilisateur trop court (min 6 caractères)"
+warn_weak_password "$USERNAME" "$USER_PASSWORD"
 
 success "Mots de passe validés"
 
@@ -248,11 +264,27 @@ info "Activation de sudo pour le groupe wheel..."
 sed -i 's/^# \(%wheel ALL=(ALL:ALL) ALL\)/\1/' /etc/sudoers
 success "Sudo configuré"
 
-# ── Clavier (SDDM + KDE) ─────────────────────────
+# ── Clavier (SDDM + KDE + XFCE) ──────────────────
 banner "CONFIGURATION CLAVIER"
-info "Clavier français pour SDDM..."
-localectl set-x11-keymap fr
-success "Clavier X11 configuré (fr)"
+
+info "Clavier français pour SDDM (écran de connexion)..."
+# localectl ne fonctionne pas en chroot — configuration directe de SDDM
+mkdir -p /etc/sddm.conf.d
+cat > /etc/sddm.conf.d/keyboard.conf << EOF
+[General]
+InputMethod=
+EOF
+# Forcer le layout X11 via xorg.conf.d
+mkdir -p /etc/X11/xorg.conf.d
+cat > /etc/X11/xorg.conf.d/00-keyboard.conf << EOF
+Section "InputClass"
+    Identifier "system-keyboard"
+    MatchIsKeyboard "on"
+    Option "XkbLayout" "fr"
+    Option "XkbModel" "pc105"
+EndSection
+EOF
+success "Clavier SDDM configuré (fr)"
 
 info "Clavier français pour KDE Plasma (Wayland)..."
 mkdir -p /home/${USERNAME}/.config
@@ -263,8 +295,23 @@ LayoutList=fr
 Model=pc105
 VariantList=
 EOF
-chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.config
 success "Clavier KDE configuré (fr)"
+
+info "Clavier français pour XFCE4 (X11)..."
+mkdir -p /home/${USERNAME}/.config/xfce4/xfconf/xfce-perchannel-xml
+cat > /home/${USERNAME}/.config/xfce4/xfconf/xfce-perchannel-xml/keyboard-layout.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="keyboard-layout" version="1.0">
+  <property name="Default" type="empty">
+    <property name="XkbDisable" type="bool" value="false"/>
+    <property name="XkbLayout" type="string" value="fr"/>
+    <property name="XkbModel" type="string" value="pc105"/>
+    <property name="XkbVariant" type="string" value=""/>
+  </property>
+</channel>
+EOF
+chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.config
+success "Clavier XFCE configuré (fr azerty)"
 
 # ── Multilib ─────────────────────────────────────
 banner "MULTILIB (32-bit)"
@@ -308,9 +355,14 @@ success "initramfs régénéré"
 banner "GRUB BOOTLOADER"
 info "Installation de GRUB..."
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ARCH
+info "Configuration de GRUB (pas de timer, boot sur kernel standard)..."
+# Pas de timer — démarre immédiatement sans afficher le menu
+sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3600/' /etc/default/grub
+# Sauvegarde la dernière entrée choisie — le kernel standard (non-LTS) est la première entrée
+sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=0/' /etc/default/grub
 info "Génération de la configuration GRUB..."
 grub-mkconfig -o /boot/grub/grub.cfg
-success "GRUB installé et configuré"
+success "GRUB installé et configuré (timeout=0, default=kernel standard)"
 
 # ── KDE Plasma ───────────────────────────────────
 banner "KDE PLASMA"
@@ -331,7 +383,8 @@ info "Multimédia & utilitaires..."
 pacman -S --noconfirm \
     vlc \
     okular \
-    gnome-disk-utility
+    gnome-disk-utility \
+    yakuake
 success "Multimédia & utilitaires installés"
 
 info "Gaming (Lutris + Steam)..."
@@ -346,6 +399,11 @@ info "XFCE4 — session X11..."
 pacman -S --noconfirm \
     xfce4 xfce4-goodies
 success "XFCE4 installé (X11)"
+
+info "Installation de Cinnamon (X11)..."
+pacman -S --noconfirm \
+    cinnamon
+success "Cinnamon installé (X11)"
 
 # ── switcheroo-control ───────────────────────────
 banner "SWITCHEROO-CONTROL"

@@ -1,11 +1,11 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════╗
-# ║        ARCH LINUX INSTALL — VMware Workstation               ║
-# ║        Config : UEFI · KDE Plasma · open-vm-tools           ║
-# ║        Alternative à 1-install.sh (laptop AMD+NVIDIA)       ║
+# ║        ARCH LINUX INSTALL — Desktop AMD CPU + AMD GPU        ║
+# ║        Config : UEFI · KDE Plasma · AMD GPU uniquement       ║
+# ║        Pas d'Optimus · Pas de NVIDIA                         ║
 # ╚══════════════════════════════════════════════════════════════╝
-# Usage : bash 1-install-vm.sh
-# ⚠️  Ce script va EFFACER ENTIÈREMENT le disque virtuel cible !
+# Usage : bash 1-install-desktop.sh
+# ⚠️  Ce script va EFFACER ENTIÈREMENT le disque cible !
 
 set -uo pipefail
 trap 's=$?; echo -e "\n❌ Erreur ligne $LINENO : $BASH_COMMAND\n"; exit $s' ERR
@@ -13,9 +13,9 @@ trap 's=$?; echo -e "\n❌ Erreur ligne $LINENO : $BASH_COMMAND\n"; exit $s' ERR
 # ══════════════════════════════════════════════════════════
 #  VARIABLES — Modifie ces valeurs avant de lancer !
 # ══════════════════════════════════════════════════════════
-DISK="/dev/nvme0n1"        # Disque VMware NVMe virtuel
-HOSTNAME="arch-vm"         # Nom de la machine virtuelle
-USERNAME="Admin"           # Nom d'utilisateur (minuscules, sans espace)
+DISK="/dev/nvme0n1"        # Vérifie avec : fdisk -l
+HOSTNAME="mon-desktop"     # Nom de la machine sur le réseau
+USERNAME="Admin"           # Nom d'utilisateur
 TIMEZONE="Europe/Paris"
 LOCALE="fr_FR.UTF-8"
 KEYMAP="fr"
@@ -38,15 +38,20 @@ banner()  { echo -e "\n${BOLD}══ $1 ══${NC}"; }
 banner "VÉRIFICATIONS"
 
 info "Mode UEFI..."
-ls /sys/firmware/efi/efivars &>/dev/null || error "Pas en mode UEFI ! Active l'UEFI dans les paramètres de la VM."
+ls /sys/firmware/efi/efivars &>/dev/null || error "Pas en mode UEFI ! Vérifie les paramètres BIOS."
 success "Mode UEFI confirmé"
 
-info "Connexion internet (NAT VMware)..."
+info "Connexion internet (Ethernet)..."
+ETH_IF=$(ip link | awk -F: '/^[0-9]+: e/{print $2; exit}' | tr -d ' ')
+if [[ -n "$ETH_IF" ]]; then
+    ip link set "$ETH_IF" up 2>/dev/null || true
+    ip addr show "$ETH_IF" | grep -q "inet " || dhcpcd "$ETH_IF" &>/dev/null || true
+fi
 ping -c 1 -W 5 archlinux.org &>/dev/null \
-    || error "Pas de connexion internet.\n  → Vérifie que la VM est en mode NAT dans VMware\n  → Network Adapter → NAT"
-success "Connexion internet OK"
+    || error "Pas de connexion internet.\n  → Vérifie que le câble Ethernet est bien branché.\n  → Interface détectée : ${ETH_IF:-aucune}\n  → Essaie manuellement : ip link set \$ETH_IF up && dhcpcd \$ETH_IF"
+success "Connexion Ethernet OK (interface : ${ETH_IF:-inconnue})"
 
-info "Disque virtuel cible : $DISK"
+info "Disque cible : $DISK"
 fdisk -l "$DISK" 2>/dev/null | head -5 || error "Disque $DISK introuvable ! Vérifie avec : fdisk -l"
 success "Disque trouvé"
 
@@ -96,7 +101,7 @@ echo -e "${RED}${BOLD}"
 echo "  ╔════════════════════════════════════════════╗"
 echo "  ║  ⚠️   ATTENTION : DESTRUCTION DE DONNÉES  ║"
 echo "  ║                                            ║"
-echo "  ║  Le disque virtuel suivant va être EFFACÉ :║"
+echo "  ║  Le disque suivant va être EFFACÉ :        ║"
 echo "  ║  $DISK                                     ║"
 echo "  ╚════════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -127,7 +132,6 @@ sgdisk -n 1:0:+512M  -t 1:ef00 -c 1:"EFI"  "$DISK"
 sgdisk -n 2:0:0      -t 2:8300 -c 2:"ROOT" "$DISK"
 success "Partitions créées"
 
-# Détection dynamique NVMe vs SATA
 if [[ "$DISK" == *"nvme"* ]]; then
     EFI_PART="${DISK}p1"
     ROOT_PART="${DISK}p2"
@@ -174,11 +178,11 @@ success "Miroirs configurés"
 # ══════════════════════════════════════════════════════════
 banner "SYSTÈME DE BASE"
 info "Installation des paquets de base..."
-# Pas de amd-ucode dans une VM (microcode inutile)
 pacstrap -K /mnt \
     base base-devel \
     linux linux-headers linux-firmware \
     linux-lts linux-lts-headers \
+    amd-ucode \
     networkmanager \
     vim nano \
     git wget curl \
@@ -310,42 +314,29 @@ sed -i '/^\[multilib\]/{n;s/^#Include/Include/}' /etc/pacman.conf
 pacman -Syy --noconfirm
 success "Multilib activé"
 
-# ── Drivers GPU VMware ───────────────────────────
-banner "DRIVERS GPU VMWARE"
-info "Installation des drivers graphiques VMware..."
-# xf86-video-vmware supprimé des dépôts Arch — le module kernel vmwgfx gère l'affichage
-# xf86-input-vmmouse : driver souris VMware
-# mesa               : rendu OpenGL
-# xorg-server        : serveur X11 (requis pour KDE X11 et XFCE)
+# ── Drivers GPU AMD ──────────────────────────────
+banner "DRIVERS GPU AMD"
+# Pas de NVIDIA sur ce desktop — AMD uniquement
+info "Installation des drivers AMD (GPU dédié)..."
 pacman -S --noconfirm \
-    mesa \
-    xf86-input-vmmouse \
-    xorg-server xorg-xinit \
-    vulkan-icd-loader
-success "Drivers VMware installés"
+    mesa vulkan-radeon libva-mesa-driver xf86-video-amdgpu \
+    lib32-mesa lib32-vulkan-radeon
+success "Drivers AMD installés"
 
-# ── open-vm-tools ────────────────────────────────
-banner "OPEN-VM-TOOLS"
-info "Installation de open-vm-tools (intégration VMware)..."
-# Fournit : clipboard bidirectionnel, dossiers partagés,
-#           résolution automatique, drag & drop
-pacman -S --noconfirm \
-    open-vm-tools \
-    gtkmm3
-success "open-vm-tools installé"
+info "Installation des outils Vulkan..."
+pacman -S --noconfirm vulkan-icd-loader lib32-vulkan-icd-loader
+success "Vulkan installé"
 
 # ── GRUB ─────────────────────────────────────────
 banner "GRUB BOOTLOADER"
 info "Installation de GRUB..."
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ARCH
-info "Configuration de GRUB (pas de timer, boot sur kernel standard)..."
-# Pas de timer — démarre immédiatement sans afficher le menu
+info "Configuration de GRUB (timeout 1h, boot sur kernel standard)..."
 sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3600/' /etc/default/grub
-# Le kernel standard (non-LTS) est la première entrée générée par grub-mkconfig
 sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=0/' /etc/default/grub
 info "Génération de la configuration GRUB..."
 grub-mkconfig -o /boot/grub/grub.cfg
-success "GRUB installé et configuré (timeout=0, default=kernel standard)"
+success "GRUB installé et configuré"
 
 # ── KDE Plasma ───────────────────────────────────
 banner "KDE PLASMA"
@@ -377,8 +368,6 @@ pacman -S --noconfirm \
 success "Lutris et Steam installés"
 
 info "XFCE4 — session X11..."
-# labwc retiré : XFCE4 Wayland expérimental supprimé, X11 uniquement
-# Plasma reste en Wayland, XFCE4 en X11
 pacman -S --noconfirm \
     xfce4 xfce4-goodies
 success "XFCE4 installé (X11)"
@@ -393,10 +382,7 @@ banner "SERVICES SYSTÈME"
 info "Activation des services..."
 systemctl enable NetworkManager
 systemctl enable sddm
-# Services open-vm-tools (intégration VMware)
-systemctl enable vmtoolsd
-systemctl enable vmware-vmblock-fuse
-success "Services activés : NetworkManager, SDDM, vmtoolsd, vmware-vmblock-fuse"
+success "Services activés : NetworkManager, SDDM"
 
 # ── Swapfile ─────────────────────────────────────
 banner "SWAPFILE (8 Go)"
@@ -434,14 +420,11 @@ success "Partitions démontées"
 
 echo -e "\n${GREEN}${BOLD}"
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║        ✅ INSTALLATION VM TERMINÉE !                     ║"
+echo "║        ✅ INSTALLATION DESKTOP TERMINÉE !                ║"
 echo "╠══════════════════════════════════════════════════════════╣"
-echo "║  1. Éjecte l'ISO dans VMware (VM → Removable Devices)   ║"
+echo "║  1. Retire ta clé USB                                   ║"
 echo "║  2. Redémarre : reboot                                  ║"
 echo "║  3. Connecte-toi avec : ${USERNAME}                      ║"
-echo "║  4. Lance ensuite : bash 2-post-install-vm.sh           ║"
-echo "╠══════════════════════════════════════════════════════════╣"
-echo "║  ⚠️  NE PAS lancer 2-post-install.sh (version laptop)   ║"
-echo "║     → envycontrol et NVIDIA ne fonctionnent pas en VM   ║"
+echo "║  4. Lance ensuite : bash 2-post-install-desktop.sh      ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"

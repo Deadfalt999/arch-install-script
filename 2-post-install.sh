@@ -802,6 +802,7 @@ unset -f _build_vkquake
 
 
 
+<<<<<<< HEAD
 # ══════════════════════════════════════════════════════════
 #  PLYMOUTH — BOOT SPLASH (SEMATRIX — EFFET MATRIX)
 # ══════════════════════════════════════════════════════════
@@ -858,6 +859,8 @@ else
     warn "  bash 2-post-install-vm.sh --remove-plymouth"
 fi
 
+=======
+>>>>>>> 26a90e076a659dba278cfef05d7d7db448aa8d16
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
 sudo pacman -S --noconfirm \

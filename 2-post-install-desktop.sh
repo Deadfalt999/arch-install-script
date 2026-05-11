@@ -784,6 +784,7 @@ unset -f _build_vkquake
 
 
 
+<<<<<<< HEAD
 
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
@@ -972,6 +973,8 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 
 
+=======
+>>>>>>> 26a90e076a659dba278cfef05d7d7db448aa8d16
 # ── Wine Staging & outils (pacman) ───────────────────────
 info "Installation de Wine Staging..."
 sudo pacman -S --noconfirm \
