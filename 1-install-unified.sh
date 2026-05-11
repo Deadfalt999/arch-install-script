@@ -174,24 +174,22 @@ done
 echo ""
 
 # Détection automatique du type de bus et du disque
-_TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | grep -v "^$" | head -1)
 _DISK_NAME=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print $1}' | head -1)
+_TRAN=$(lsblk -d -n -o NAME,TRAN 2>/dev/null | awk '$1=="'"$_DISK_NAME"'"{print $2}' | head -1)
 
-case "${_TRAN,,}" in
-    nvme)         _AUTO_DISK="/dev/nvme0n1"
-                  _DISK_TYPE="NVMe" ;;
-    sata)         _AUTO_DISK="/dev/sda"
-                  _DISK_TYPE="SATA" ;;
-    ide)          _AUTO_DISK="/dev/sda"
-                  _DISK_TYPE="IDE" ;;
-    scsi)         _AUTO_DISK="/dev/sda"
-                  _DISK_TYPE="SCSI" ;;
-    usb)          _AUTO_DISK="/dev/sda"
-                  _DISK_TYPE="USB" ;;
-    *)            _AUTO_DISK="${_DISK_NAME:+/dev/$_DISK_NAME}"
-                  _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
-                  _DISK_TYPE="inconnu" ;;
-esac
+# Prioriser le nom du device pour détecter NVMe
+if [[ "$_DISK_NAME" == nvme* ]]; then
+    _AUTO_DISK="/dev/${_DISK_NAME}"
+    _DISK_TYPE="NVMe"
+else
+    case "${_TRAN,,}" in
+        sata)  _AUTO_DISK="/dev/sda"; _DISK_TYPE="SATA" ;;
+        ide)   _AUTO_DISK="/dev/sda"; _DISK_TYPE="IDE" ;;
+        scsi)  _AUTO_DISK="/dev/sda"; _DISK_TYPE="SCSI" ;;
+        usb)   _AUTO_DISK="/dev/sda"; _DISK_TYPE="USB" ;;
+        *)     _AUTO_DISK="/dev/${_DISK_NAME:-sda}"; _DISK_TYPE="inconnu" ;;
+    esac
+fi
 
 echo -e "  ${GREEN}→ Type détecté : ${BOLD}${_DISK_TYPE}${NC} → ${GREEN}${_AUTO_DISK}${NC}"
 echo ""
