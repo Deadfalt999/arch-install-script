@@ -270,26 +270,122 @@ $INSTALL_GNOME    && _DE_NAMES="$_DE_NAMES GNOME"
 $INSTALL_MATE     && _DE_NAMES="$_DE_NAMES MATE"
 echo -e "  → DEs retenus :${GREEN}${_DE_NAMES}${NC}"
 
-# ── Sélection des paquets utilitaires ────────────────────
+# ── Sélection AUR Helper ─────────────────────────────────
 echo ""
-echo -e "${BOLD}Paquets utilitaires :${NC}"
-echo -e "  [1] Firefox      ${GREEN}✓${NC}   [2] VLC         ${GREEN}✓${NC}   [3] Steam        ${GREEN}✓${NC}"
-echo -e "  [4] Lutris        ${GREEN}✓${NC}   [5] LibreOffice     [6] GIMP"
-echo -e "  [7] Thunderbird      [8] VSCode (AUR)    [9] Kdenlive"
-echo -e "  [0] Tout sélectionner"
+echo -e "${BOLD}AUR Helper — requis pour certains paquets :${NC}"
+echo -e "  [A1] yay     — Go, le plus populaire     ${GREEN}✓${NC}"
+echo -e "  [A2] paru    — Rust, fork de yay, rapide"
+echo -e "  [A3] trizen  — Perl, léger"
+echo -e "  [A0] Aucun   — ${YELLOW}⚠️  les paquets marqués (AUR) ne seront pas installés${NC}"
 echo ""
-read -rp "$(echo -e "${YELLOW}Sélection paquets${NC} [1 2 3 4]: ")" _PKG_SEL
-_PKG_SEL="${_PKG_SEL:-1 2 3 4}"
-[[ "$_PKG_SEL" == *"0"* ]] && _PKG_SEL="1 2 3 4 5 6 7 8 9"
-PKG_FIREFOX=false;     [[ "$_PKG_SEL" == *"1"* ]] && PKG_FIREFOX=true
-PKG_VLC=false;         [[ "$_PKG_SEL" == *"2"* ]] && PKG_VLC=true
-PKG_STEAM=false;       [[ "$_PKG_SEL" == *"3"* ]] && PKG_STEAM=true
-PKG_LUTRIS=false;      [[ "$_PKG_SEL" == *"4"* ]] && PKG_LUTRIS=true
-PKG_LIBREOFFICE=false; [[ "$_PKG_SEL" == *"5"* ]] && PKG_LIBREOFFICE=true
-PKG_GIMP=false;        [[ "$_PKG_SEL" == *"6"* ]] && PKG_GIMP=true
-PKG_THUNDERBIRD=false; [[ "$_PKG_SEL" == *"7"* ]] && PKG_THUNDERBIRD=true
-PKG_VSCODE=false;      [[ "$_PKG_SEL" == *"8"* ]] && PKG_VSCODE=true
-PKG_KDENLIVE=false;    [[ "$_PKG_SEL" == *"9"* ]] && PKG_KDENLIVE=true
+read -rp "$(echo -e "${YELLOW}AUR Helper${NC} [A1]: ")" _AUR_HELPER_SEL
+_AUR_HELPER_SEL="${_AUR_HELPER_SEL:-A1}"
+AUR_HELPER="none"
+case "${_AUR_HELPER_SEL^^}" in
+    A1) AUR_HELPER="yay" ;;
+    A2) AUR_HELPER="paru" ;;
+    A3) AUR_HELPER="trizen" ;;
+    A0) AUR_HELPER="none" ;;
+    *)  AUR_HELPER="yay" ;;
+esac
+echo -e "  → AUR Helper retenu : ${GREEN}${AUR_HELPER}${NC}"
+[[ "$AUR_HELPER" == "none" ]] && echo -e "  ${RED}⚠️  Sans AUR helper : Brave, Heroic, Bottles, Discord, Timeshift, VSCode ne seront pas installés${NC}"
+
+# ── Sélection des paquets ─────────────────────────────────
+echo ""
+echo -e "${BOLD}Paquets — sélectionner par catégorie (numéros séparés par espaces) :${NC}"
+echo -e "${YELLOW}[0] Tout sélectionner${NC}"
+echo ""
+echo -e "${BLUE}── Navigateurs ─────────────────────────────${NC}"
+echo -e "  [1]  Firefox          ${GREEN}✓${NC}"
+echo -e "  [2]  Chromium"
+echo -e "  [3]  Brave            ${YELLOW}(AUR — nécessite AUR helper)${NC}"
+echo ""
+echo -e "${BLUE}── Gaming ──────────────────────────────────${NC}"
+echo -e "  [4]  Steam            ${GREEN}✓${NC}"
+echo -e "  [5]  Lutris           ${GREEN}✓${NC}"
+echo -e "  [6]  Heroic           ${YELLOW}(AUR — Epic/GOG)${NC}"
+echo -e "  [7]  GameMode         ${GREEN}✓${NC}"
+echo -e "  [8]  MangoHud         ${GREEN}✓${NC}"
+echo -e "  [9]  Bottles          ${YELLOW}(AUR — Wine manager)${NC}"
+echo -e "  [10] Discord          ${YELLOW}(AUR)${NC}"
+echo ""
+echo -e "${BLUE}── Streaming / Création ────────────────────${NC}"
+echo -e "  [11] OBS Studio       ${GREEN}✓${NC}"
+echo -e "  [12] Kdenlive"
+echo -e "  [13] Blender"
+echo -e "  [14] GIMP"
+echo -e "  [15] Inkscape"
+echo -e "  [16] Audacity"
+echo ""
+echo -e "${BLUE}── Productivité ────────────────────────────${NC}"
+echo -e "  [17] LibreOffice"
+echo -e "  [18] Thunderbird"
+echo -e "  [19] KeePassXC"
+echo -e "  [20] Flameshot"
+echo -e "  [21] Timeshift        ${YELLOW}(AUR)${NC}"
+echo -e "  [22] Gnome Disk Utility ${GREEN}✓${NC}"
+echo ""
+echo -e "${BLUE}── Développement ───────────────────────────${NC}"
+echo -e "  [23] VSCode           ${YELLOW}(AUR)${NC}"
+echo -e "  [24] Neovim"
+echo -e "  [25] Docker"
+echo ""
+echo -e "${BLUE}── Réseau / Utilitaires ────────────────────${NC}"
+echo -e "  [26] VLC              ${GREEN}✓${NC}"
+echo -e "  [27] qBittorrent"
+echo -e "  [28] FileZilla"
+echo ""
+[[ "$AUR_HELPER" == "none" ]] && echo -e "${YELLOW}⚠️  AUR helper absent — les paquets [3][6][9][10][21][23] seront ignorés même si sélectionnés${NC}\n"
+echo ""
+read -rp "$(echo -e "${YELLOW}Sélection${NC} [1 4 5 7 8 11 22 26]: ")" _PKG_SEL
+_PKG_SEL="${_PKG_SEL:-1 4 5 7 8 11 22 26}"
+[[ "$_PKG_SEL" == *"0"* ]] && _PKG_SEL="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28"
+
+# Désactiver les paquets AUR si pas d'AUR helper
+if [[ "$AUR_HELPER" == "none" ]]; then
+    _PKG_SEL="${_PKG_SEL//3/}"; _PKG_SEL="${_PKG_SEL//6/}"
+    _PKG_SEL="${_PKG_SEL//9/}"; _PKG_SEL="${_PKG_SEL//10/}"
+    _PKG_SEL="${_PKG_SEL//21/}"; _PKG_SEL="${_PKG_SEL//23/}"
+fi
+
+# Navigateurs
+PKG_FIREFOX=false;    [[ "$_PKG_SEL" == *" 1 "* || "$_PKG_SEL" == "1 "* || "$_PKG_SEL" == *" 1" || "$_PKG_SEL" == "1" ]] && PKG_FIREFOX=true
+PKG_CHROMIUM=false;   [[ "$_PKG_SEL" == *"2"* ]] && PKG_CHROMIUM=true
+PKG_BRAVE=false;      [[ "$_PKG_SEL" == *"3"* ]] && PKG_BRAVE=true
+# Gaming
+PKG_STEAM=false;      [[ "$_PKG_SEL" == *"4"* ]] && PKG_STEAM=true
+PKG_LUTRIS=false;     [[ "$_PKG_SEL" == *"5"* ]] && PKG_LUTRIS=true
+PKG_HEROIC=false;     [[ "$_PKG_SEL" == *"6"* ]] && PKG_HEROIC=true
+PKG_GAMEMODE=false;   [[ "$_PKG_SEL" == *"7"* ]] && PKG_GAMEMODE=true
+PKG_MANGOHUD=false;   [[ "$_PKG_SEL" == *"8"* ]] && PKG_MANGOHUD=true
+PKG_BOTTLES=false;    [[ "$_PKG_SEL" == *"9"* ]] && PKG_BOTTLES=true
+PKG_DISCORD=false;    [[ "$_PKG_SEL" == *"10"* ]] && PKG_DISCORD=true
+# Streaming
+PKG_OBS=false;        [[ "$_PKG_SEL" == *"11"* ]] && PKG_OBS=true
+PKG_KDENLIVE=false;   [[ "$_PKG_SEL" == *"12"* ]] && PKG_KDENLIVE=true
+PKG_BLENDER=false;    [[ "$_PKG_SEL" == *"13"* ]] && PKG_BLENDER=true
+PKG_GIMP=false;       [[ "$_PKG_SEL" == *"14"* ]] && PKG_GIMP=true
+PKG_INKSCAPE=false;   [[ "$_PKG_SEL" == *"15"* ]] && PKG_INKSCAPE=true
+PKG_AUDACITY=false;   [[ "$_PKG_SEL" == *"16"* ]] && PKG_AUDACITY=true
+# Productivité
+PKG_LIBREOFFICE=false;[[ "$_PKG_SEL" == *"17"* ]] && PKG_LIBREOFFICE=true
+PKG_THUNDERBIRD=false;[[ "$_PKG_SEL" == *"18"* ]] && PKG_THUNDERBIRD=true
+PKG_KEEPASSXC=false;  [[ "$_PKG_SEL" == *"19"* ]] && PKG_KEEPASSXC=true
+PKG_FLAMESHOT=false;  [[ "$_PKG_SEL" == *"20"* ]] && PKG_FLAMESHOT=true
+PKG_TIMESHIFT=false;  [[ "$_PKG_SEL" == *"21"* ]] && PKG_TIMESHIFT=true
+PKG_GNOME_DISK=false; [[ "$_PKG_SEL" == *"22"* ]] && PKG_GNOME_DISK=true
+# Développement
+PKG_VSCODE=false;     [[ "$_PKG_SEL" == *"23"* ]] && PKG_VSCODE=true
+PKG_NEOVIM=false;     [[ "$_PKG_SEL" == *"24"* ]] && PKG_NEOVIM=true
+PKG_DOCKER=false;     [[ "$_PKG_SEL" == *"25"* ]] && PKG_DOCKER=true
+# Réseau
+PKG_VLC=false;        [[ "$_PKG_SEL" == *"26"* ]] && PKG_VLC=true
+PKG_QBITTORRENT=false;[[ "$_PKG_SEL" == *"27"* ]] && PKG_QBITTORRENT=true
+PKG_FILEZILLA=false;  [[ "$_PKG_SEL" == *"28"* ]] && PKG_FILEZILLA=true
+
+echo ""
+echo -e "  → Paquets retenus : ${GREEN}${_PKG_SEL}${NC}"
 
 echo ""
 echo -e "${BOLD}Configuration retenue :${NC}"
@@ -459,20 +555,40 @@ _NEED_NVIDIA="${_NEED_NVIDIA}"
 _NEED_AMD_GPU="${_NEED_AMD_GPU}"
 _OPTIMUS="${_OPTIMUS}"
 _CPU="${_CPU}"
+AUR_HELPER="${AUR_HELPER}"
 INSTALL_KDE="${INSTALL_KDE}"
 INSTALL_XFCE="${INSTALL_XFCE}"
 INSTALL_CINNAMON="${INSTALL_CINNAMON}"
 INSTALL_GNOME="${INSTALL_GNOME}"
 INSTALL_MATE="${INSTALL_MATE}"
 PKG_FIREFOX="${PKG_FIREFOX}"
-PKG_VLC="${PKG_VLC}"
+PKG_CHROMIUM="${PKG_CHROMIUM}"
+PKG_BRAVE="${PKG_BRAVE}"
 PKG_STEAM="${PKG_STEAM}"
 PKG_LUTRIS="${PKG_LUTRIS}"
-PKG_LIBREOFFICE="${PKG_LIBREOFFICE}"
-PKG_GIMP="${PKG_GIMP}"
-PKG_THUNDERBIRD="${PKG_THUNDERBIRD}"
-PKG_VSCODE="${PKG_VSCODE}"
+PKG_HEROIC="${PKG_HEROIC}"
+PKG_GAMEMODE="${PKG_GAMEMODE}"
+PKG_MANGOHUD="${PKG_MANGOHUD}"
+PKG_BOTTLES="${PKG_BOTTLES}"
+PKG_DISCORD="${PKG_DISCORD}"
+PKG_OBS="${PKG_OBS}"
 PKG_KDENLIVE="${PKG_KDENLIVE}"
+PKG_BLENDER="${PKG_BLENDER}"
+PKG_GIMP="${PKG_GIMP}"
+PKG_INKSCAPE="${PKG_INKSCAPE}"
+PKG_AUDACITY="${PKG_AUDACITY}"
+PKG_LIBREOFFICE="${PKG_LIBREOFFICE}"
+PKG_THUNDERBIRD="${PKG_THUNDERBIRD}"
+PKG_KEEPASSXC="${PKG_KEEPASSXC}"
+PKG_FLAMESHOT="${PKG_FLAMESHOT}"
+PKG_TIMESHIFT="${PKG_TIMESHIFT}"
+PKG_GNOME_DISK="${PKG_GNOME_DISK}"
+PKG_VSCODE="${PKG_VSCODE}"
+PKG_NEOVIM="${PKG_NEOVIM}"
+PKG_DOCKER="${PKG_DOCKER}"
+PKG_VLC="${PKG_VLC}"
+PKG_QBITTORRENT="${PKG_QBITTORRENT}"
+PKG_FILEZILLA="${PKG_FILEZILLA}"
 
 # ── Timezone ──────────────────────────────────────────────
 banner "TIMEZONE"
@@ -669,26 +785,71 @@ if [[ "${INSTALL_KDE}" == "false" ]]; then
     systemctl enable lightdm 2>/dev/null || true
 fi
 
-# ── Paquets utilitaires ───────────────────────────────────
-banner "LOGICIELS SUPPLÉMENTAIRES"
-_EXTRA_PKGS=""
-[[ "${PKG_FIREFOX}"     == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS firefox"
-[[ "${PKG_VLC}"         == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS vlc"
-[[ "${PKG_STEAM}"       == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS steam"
-[[ "${PKG_LUTRIS}"      == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS lutris"
-[[ "${PKG_LIBREOFFICE}" == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS libreoffice-fresh"
-[[ "${PKG_GIMP}"        == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS gimp"
-[[ "${PKG_THUNDERBIRD}" == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS thunderbird"
-[[ "${PKG_KDENLIVE}"    == "true" ]] && _EXTRA_PKGS="$_EXTRA_PKGS kdenlive"
-_EXTRA_PKGS="$_EXTRA_PKGS htop fastfetch"
-
-if [[ -n "${_EXTRA_PKGS## }" ]]; then
-    pacman -S --noconfirm ${_EXTRA_PKGS} --disable-download-timeout
-    success "Logiciels installés"
+# ── AUR Helper ────────────────────────────────────────────
+AUR_HELPER="${AUR_HELPER}"
+if [[ "$AUR_HELPER" != "none" ]]; then
+    banner "AUR HELPER — ${AUR_HELPER}"
+    pacman -S --noconfirm --needed go git base-devel --disable-download-timeout
+    cd /tmp
+    git clone "https://aur.archlinux.org/${AUR_HELPER}.git"
+    chmod 777 "/tmp/${AUR_HELPER}"
+    cd "/tmp/${AUR_HELPER}"
+    sudo -u "${USERNAME}" makepkg -si --noconfirm
+    cd /
+    rm -rf "/tmp/${AUR_HELPER}"
+    success "${AUR_HELPER} installé"
 fi
 
-# VSCode via AUR (après yay — non disponible ici, noter pour script 2)
-[[ "${PKG_VSCODE}" == "true" ]] && echo "# VSCode à installer via AUR dans le script 2" >> /root/post-install-notes.txt
+# ── Paquets utilitaires ───────────────────────────────────
+banner "LOGICIELS SUPPLÉMENTAIRES"
+_PACMAN_PKGS="htop fastfetch"
+_AUR_PKGS=""
+
+# Navigateurs
+[[ "${PKG_FIREFOX}"     == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS firefox"
+[[ "${PKG_CHROMIUM}"    == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS chromium"
+[[ "${PKG_BRAVE}"       == "true" ]] && _AUR_PKGS="$_AUR_PKGS brave-bin"
+# Gaming
+[[ "${PKG_STEAM}"       == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS steam"
+[[ "${PKG_LUTRIS}"      == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS lutris"
+[[ "${PKG_HEROIC}"      == "true" ]] && _AUR_PKGS="$_AUR_PKGS heroic-games-launcher-bin"
+[[ "${PKG_GAMEMODE}"    == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS gamemode lib32-gamemode"
+[[ "${PKG_MANGOHUD}"    == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS mangohud lib32-mangohud"
+[[ "${PKG_BOTTLES}"     == "true" ]] && _AUR_PKGS="$_AUR_PKGS bottles"
+[[ "${PKG_DISCORD}"     == "true" ]] && _AUR_PKGS="$_AUR_PKGS discord"
+# Streaming / Création
+[[ "${PKG_OBS}"         == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS obs-studio"
+[[ "${PKG_KDENLIVE}"    == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS kdenlive"
+[[ "${PKG_BLENDER}"     == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS blender"
+[[ "${PKG_GIMP}"        == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS gimp"
+[[ "${PKG_INKSCAPE}"    == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS inkscape"
+[[ "${PKG_AUDACITY}"    == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS audacity"
+# Productivité
+[[ "${PKG_LIBREOFFICE}" == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS libreoffice-fresh"
+[[ "${PKG_THUNDERBIRD}" == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS thunderbird"
+[[ "${PKG_KEEPASSXC}"   == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS keepassxc"
+[[ "${PKG_FLAMESHOT}"   == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS flameshot"
+[[ "${PKG_TIMESHIFT}"   == "true" ]] && _AUR_PKGS="$_AUR_PKGS timeshift"
+[[ "${PKG_GNOME_DISK}"  == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS gnome-disk-utility"
+# Développement
+[[ "${PKG_NEOVIM}"      == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS neovim"
+[[ "${PKG_DOCKER}"      == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS docker docker-compose" && systemctl enable docker
+[[ "${PKG_VSCODE}"      == "true" ]] && _AUR_PKGS="$_AUR_PKGS visual-studio-code-bin"
+# Réseau
+[[ "${PKG_VLC}"         == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS vlc"
+[[ "${PKG_QBITTORRENT}" == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS qbittorrent"
+[[ "${PKG_FILEZILLA}"   == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS filezilla"
+
+# Installer paquets pacman
+pacman -S --noconfirm ${_PACMAN_PKGS} --disable-download-timeout
+success "Logiciels pacman installés"
+
+# Installer paquets AUR avec le helper choisi
+if [[ -n "${_AUR_PKGS## }" && "$AUR_HELPER" != "none" ]]; then
+    info "Installation des paquets AUR via ${AUR_HELPER}..."
+    sudo -u "${USERNAME}" ${AUR_HELPER} -S --noconfirm --mflags "--nocheck" ${_AUR_PKGS}
+    success "Paquets AUR installés"
+fi
 
 # ── SDDM ──────────────────────────────────────────────────
 banner "SDDM"
