@@ -342,47 +342,53 @@ read -rp "$(echo -e "${YELLOW}Sélection${NC} [1 4 5 7 8 11 22 26]: ")" _PKG_SEL
 _PKG_SEL="${_PKG_SEL:-1 4 5 7 8 11 22 26}"
 [[ "$_PKG_SEL" == *"0"* ]] && _PKG_SEL="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28"
 
+# Normaliser : ajouter espaces autour de chaque token pour éviter les conflits (1 vs 21, 3 vs 13/23...)
+_PKG_SEL=" ${_PKG_SEL} "
+
 # Désactiver les paquets AUR si pas d'AUR helper
 if [[ "$AUR_HELPER" == "none" ]]; then
-    _PKG_SEL="${_PKG_SEL//3/}"; _PKG_SEL="${_PKG_SEL//6/}"
-    _PKG_SEL="${_PKG_SEL//9/}"; _PKG_SEL="${_PKG_SEL//10/}"
-    _PKG_SEL="${_PKG_SEL//21/}"; _PKG_SEL="${_PKG_SEL//23/}"
+    for _n in 3 6 9 10 21 23; do
+        _PKG_SEL="${_PKG_SEL/ $_n / }"
+    done
 fi
 
+# Fonction helper de détection
+_has_pkg() { [[ " $_PKG_SEL " == *" $1 "* ]]; }
+
 # Navigateurs
-PKG_FIREFOX=false;    [[ "$_PKG_SEL" == *" 1 "* || "$_PKG_SEL" == "1 "* || "$_PKG_SEL" == *" 1" || "$_PKG_SEL" == "1" ]] && PKG_FIREFOX=true
-PKG_CHROMIUM=false;   [[ "$_PKG_SEL" == *"2"* ]] && PKG_CHROMIUM=true
-PKG_BRAVE=false;      [[ "$_PKG_SEL" == *"3"* ]] && PKG_BRAVE=true
+PKG_FIREFOX=false;    _has_pkg 1  && PKG_FIREFOX=true
+PKG_CHROMIUM=false;   _has_pkg 2  && PKG_CHROMIUM=true
+PKG_BRAVE=false;      _has_pkg 3  && PKG_BRAVE=true
 # Gaming
-PKG_STEAM=false;      [[ "$_PKG_SEL" == *"4"* ]] && PKG_STEAM=true
-PKG_LUTRIS=false;     [[ "$_PKG_SEL" == *"5"* ]] && PKG_LUTRIS=true
-PKG_HEROIC=false;     [[ "$_PKG_SEL" == *"6"* ]] && PKG_HEROIC=true
-PKG_GAMEMODE=false;   [[ "$_PKG_SEL" == *"7"* ]] && PKG_GAMEMODE=true
-PKG_MANGOHUD=false;   [[ "$_PKG_SEL" == *"8"* ]] && PKG_MANGOHUD=true
-PKG_BOTTLES=false;    [[ "$_PKG_SEL" == *"9"* ]] && PKG_BOTTLES=true
-PKG_DISCORD=false;    [[ "$_PKG_SEL" == *"10"* ]] && PKG_DISCORD=true
+PKG_STEAM=false;      _has_pkg 4  && PKG_STEAM=true
+PKG_LUTRIS=false;     _has_pkg 5  && PKG_LUTRIS=true
+PKG_HEROIC=false;     _has_pkg 6  && PKG_HEROIC=true
+PKG_GAMEMODE=false;   _has_pkg 7  && PKG_GAMEMODE=true
+PKG_MANGOHUD=false;   _has_pkg 8  && PKG_MANGOHUD=true
+PKG_BOTTLES=false;    _has_pkg 9  && PKG_BOTTLES=true
+PKG_DISCORD=false;    _has_pkg 10 && PKG_DISCORD=true
 # Streaming
-PKG_OBS=false;        [[ "$_PKG_SEL" == *"11"* ]] && PKG_OBS=true
-PKG_KDENLIVE=false;   [[ "$_PKG_SEL" == *"12"* ]] && PKG_KDENLIVE=true
-PKG_BLENDER=false;    [[ "$_PKG_SEL" == *"13"* ]] && PKG_BLENDER=true
-PKG_GIMP=false;       [[ "$_PKG_SEL" == *"14"* ]] && PKG_GIMP=true
-PKG_INKSCAPE=false;   [[ "$_PKG_SEL" == *"15"* ]] && PKG_INKSCAPE=true
-PKG_AUDACITY=false;   [[ "$_PKG_SEL" == *"16"* ]] && PKG_AUDACITY=true
+PKG_OBS=false;        _has_pkg 11 && PKG_OBS=true
+PKG_KDENLIVE=false;   _has_pkg 12 && PKG_KDENLIVE=true
+PKG_BLENDER=false;    _has_pkg 13 && PKG_BLENDER=true
+PKG_GIMP=false;       _has_pkg 14 && PKG_GIMP=true
+PKG_INKSCAPE=false;   _has_pkg 15 && PKG_INKSCAPE=true
+PKG_AUDACITY=false;   _has_pkg 16 && PKG_AUDACITY=true
 # Productivité
-PKG_LIBREOFFICE=false;[[ "$_PKG_SEL" == *"17"* ]] && PKG_LIBREOFFICE=true
-PKG_THUNDERBIRD=false;[[ "$_PKG_SEL" == *"18"* ]] && PKG_THUNDERBIRD=true
-PKG_KEEPASSXC=false;  [[ "$_PKG_SEL" == *"19"* ]] && PKG_KEEPASSXC=true
-PKG_FLAMESHOT=false;  [[ "$_PKG_SEL" == *"20"* ]] && PKG_FLAMESHOT=true
-PKG_TIMESHIFT=false;  [[ "$_PKG_SEL" == *"21"* ]] && PKG_TIMESHIFT=true
-PKG_GNOME_DISK=false; [[ "$_PKG_SEL" == *"22"* ]] && PKG_GNOME_DISK=true
+PKG_LIBREOFFICE=false; _has_pkg 17 && PKG_LIBREOFFICE=true
+PKG_THUNDERBIRD=false; _has_pkg 18 && PKG_THUNDERBIRD=true
+PKG_KEEPASSXC=false;   _has_pkg 19 && PKG_KEEPASSXC=true
+PKG_FLAMESHOT=false;   _has_pkg 20 && PKG_FLAMESHOT=true
+PKG_TIMESHIFT=false;   _has_pkg 21 && PKG_TIMESHIFT=true
+PKG_GNOME_DISK=false;  _has_pkg 22 && PKG_GNOME_DISK=true
 # Développement
-PKG_VSCODE=false;     [[ "$_PKG_SEL" == *"23"* ]] && PKG_VSCODE=true
-PKG_NEOVIM=false;     [[ "$_PKG_SEL" == *"24"* ]] && PKG_NEOVIM=true
-PKG_DOCKER=false;     [[ "$_PKG_SEL" == *"25"* ]] && PKG_DOCKER=true
+PKG_VSCODE=false;     _has_pkg 23 && PKG_VSCODE=true
+PKG_NEOVIM=false;     _has_pkg 24 && PKG_NEOVIM=true
+PKG_DOCKER=false;     _has_pkg 25 && PKG_DOCKER=true
 # Réseau
-PKG_VLC=false;        [[ "$_PKG_SEL" == *"26"* ]] && PKG_VLC=true
-PKG_QBITTORRENT=false;[[ "$_PKG_SEL" == *"27"* ]] && PKG_QBITTORRENT=true
-PKG_FILEZILLA=false;  [[ "$_PKG_SEL" == *"28"* ]] && PKG_FILEZILLA=true
+PKG_VLC=false;        _has_pkg 26 && PKG_VLC=true
+PKG_QBITTORRENT=false; _has_pkg 27 && PKG_QBITTORRENT=true
+PKG_FILEZILLA=false;   _has_pkg 28 && PKG_FILEZILLA=true
 
 echo ""
 echo -e "  → Paquets retenus : ${GREEN}${_PKG_SEL}${NC}"
@@ -833,7 +839,7 @@ _AUR_PKGS=""
 [[ "${PKG_GNOME_DISK}"  == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS gnome-disk-utility"
 # Développement
 [[ "${PKG_NEOVIM}"      == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS neovim"
-[[ "${PKG_DOCKER}"      == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS docker docker-compose" && systemctl enable docker
+[[ "${PKG_DOCKER}"      == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS docker docker-compose"
 [[ "${PKG_VSCODE}"      == "true" ]] && _AUR_PKGS="$_AUR_PKGS visual-studio-code-bin"
 # Réseau
 [[ "${PKG_VLC}"         == "true" ]] && _PACMAN_PKGS="$_PACMAN_PKGS vlc"
@@ -843,6 +849,9 @@ _AUR_PKGS=""
 # Installer paquets pacman
 pacman -S --noconfirm ${_PACMAN_PKGS} --disable-download-timeout
 success "Logiciels pacman installés"
+
+# Activer Docker si installé
+[[ "${PKG_DOCKER}" == "true" ]] && systemctl enable docker 2>/dev/null || true
 
 # Installer paquets AUR avec le helper choisi
 if [[ -n "${_AUR_PKGS## }" && "$AUR_HELPER" != "none" ]]; then
