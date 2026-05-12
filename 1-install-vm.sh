@@ -192,6 +192,27 @@ timedatectl set-ntp true
 success "Horloge synchronisée"
 
 # ══════════════════════════════════════════════════════════
+#  DÉMONTAGE PRÉALABLE
+# ══════════════════════════════════════════════════════════
+banner "DÉMONTAGE PRÉALABLE"
+info "Vérification et démontage des partitions si nécessaire..."
+
+# Démonte /mnt récursivement s'il est monté
+if mountpoint -q /mnt; then
+    warn "/mnt est monté — démontage en cours..."
+    umount -R /mnt && success "/mnt démonté" || warn "Échec du démontage propre de /mnt, tentative forcée..."
+    umount -R -l /mnt 2>/dev/null || true
+fi
+
+# Démonte toute partition du disque cible encore montée ailleurs
+for PART in $(lsblk -ln -o NAME,MOUNTPOINT "$DISK" 2>/dev/null | awk '$2!="" {print "/dev/"$1}'); do
+    warn "Partition montée détectée : $PART → démontage..."
+    umount -l "$PART" 2>/dev/null && success "$PART démonté" || warn "Impossible de démonter $PART (ignoré)"
+done
+
+success "Vérification démontage terminée"
+
+# ══════════════════════════════════════════════════════════
 #  PARTITIONNEMENT
 # ══════════════════════════════════════════════════════════
 
@@ -253,10 +274,13 @@ success "Partitions montées"
 #  MIROIRS (France)
 # ══════════════════════════════════════════════════════════
 banner "MIROIRS"
-info "Sélection des miroirs les plus rapides (France)..."
+info "Sélection du miroir le plus rapide (France)..."
+
 reflector --country France --age 12 --protocol https --sort rate \
-    --save /etc/pacman.d/mirrorlist
-success "Miroirs configurés"
+    --save /etc/pacman.d/mirrorlist &>/dev/null
+
+SELECTED_MIRROR=$(grep "^Server" /etc/pacman.d/mirrorlist | head -1 | sed 's/Server = //')
+success "Miroir sélectionné : ${GREEN}${SELECTED_MIRROR}${NC}"
 
 # ══════════════════════════════════════════════════════════
 #  INSTALLATION BASE
@@ -273,7 +297,8 @@ pacstrap -K /mnt --disable-download-timeout \
     git wget curl \
     grub efibootmgr \
     sudo \
-    gptfdisk
+    gptfdisk \
+    --disable-download-timeout
 success "Système de base installé"
 
 # ══════════════════════════════════════════════════════════
@@ -410,7 +435,8 @@ pacman -S --noconfirm \
     mesa \
     xf86-input-vmmouse \
     xorg-server xorg-xinit \
-    vulkan-icd-loader
+    vulkan-icd-loader \
+    --disable-download-timeout
 success "Drivers VMware installés"
 
 # ── open-vm-tools ────────────────────────────────
@@ -448,7 +474,8 @@ pacman -S --noconfirm \
     xdg-user-dirs xdg-desktop-portal xdg-desktop-portal-kde \
     packagekit-qt6 \
     dolphin konsole kate firefox \
-    htop fastfetch
+    htop fastfetch \
+    --disable-download-timeout
 success "KDE Plasma installé"
 
 # ── Logiciels supplémentaires ────────────────────
@@ -458,25 +485,29 @@ pacman -S --noconfirm \
     vlc \
     okular \
     gnome-disk-utility \
-    yakuake
+    yakuake \
+    --disable-download-timeout
 success "Multimédia & utilitaires installés"
 
 info "Gaming (Lutris + Steam)..."
 pacman -S --noconfirm \
     lutris \
-    steam
+    steam \
+    --disable-download-timeout
 success "Lutris et Steam installés"
 
 info "XFCE4 — session X11..."
 # labwc retiré : XFCE4 Wayland expérimental supprimé, X11 uniquement
 # Plasma reste en Wayland, XFCE4 en X11
 pacman -S --noconfirm \
-    xfce4 xfce4-goodies
+    xfce4 xfce4-goodies \
+    --disable-download-timeout
 success "XFCE4 installé (X11)"
 
 info "Installation de Cinnamon (X11)..."
 pacman -S --noconfirm \
-    cinnamon
+    cinnamon \
+    --disable-download-timeout
 success "Cinnamon installé (X11)"
 
 # ── Services ─────────────────────────────────────
