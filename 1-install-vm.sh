@@ -55,19 +55,6 @@ echo -e "  IDE           → ${GREEN}/dev/sda${NC}"
 echo -e "  NVMe          → ${GREEN}/dev/nvme0n1${NC}"
 echo ""
 
-<<<<<<< HEAD
-# Détection automatique du premier disque disponible via le type de bus
-_TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
-# Les contrôleurs SCSI (VMware par défaut) renvoient une valeur vide
-case "${_TRAN,,}" in
-    nvme)         _AUTO_DISK="/dev/nvme0n1" ;;
-    sata|ide|usb) _AUTO_DISK="/dev/sda" ;;
-    *) # SCSI ou valeur vide — fallback sur le premier disque détecté
-        _FALLBACK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null | awk '$2=="disk"{print "/dev/"$1}' | head -1)
-        _AUTO_DISK="${_FALLBACK:-/dev/sda}" ;;
-esac
-
-=======
 # Détection automatique du premier disque disponible
 _TRAN=$(lsblk -d -n -o TRAN 2>/dev/null | head -1)
 case "${_TRAN,,}" in
@@ -80,7 +67,6 @@ esac
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
 _DISK=""
->>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
 
@@ -94,42 +80,27 @@ else
 fi
 
 # Hostname
-<<<<<<< HEAD
-=======
 _HOSTNAME=""
->>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
 HOSTNAME="${_HOSTNAME:-arch-vm}"
 
 # Username
-<<<<<<< HEAD
-=======
 _USERNAME=""
->>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
 USERNAME="${_USERNAME:-Admin}"
 
 # Timezone
-<<<<<<< HEAD
-=======
 _TIMEZONE=""
->>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
 TIMEZONE="${_TIMEZONE:-Europe/Paris}"
 
 # Locale
-<<<<<<< HEAD
-=======
 _LOCALE=""
->>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
 LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 
 # Keymap
-<<<<<<< HEAD
-=======
 _KEYMAP=""
->>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
 KEYMAP="${_KEYMAP:-fr}"
 
