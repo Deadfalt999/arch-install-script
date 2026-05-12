@@ -64,7 +64,10 @@ case "${_TRAN,,}" in
 esac
 _AUTO_DISK="${_AUTO_DISK:-/dev/sda}"
 
+<<<<<<< HEAD
+=======
 _DISK=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Disque cible${NC} [$_AUTO_DISK]: ")" _DISK
 DISK="${_DISK:-$_AUTO_DISK}"
 
@@ -78,27 +81,42 @@ else
 fi
 
 # Hostname
+<<<<<<< HEAD
+=======
 _HOSTNAME=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Nom de la machine (hostname)${NC} [arch-vm]: ")" _HOSTNAME
 HOSTNAME="${_HOSTNAME:-arch-vm}"
 
 # Username
+<<<<<<< HEAD
+=======
 _USERNAME=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Nom d'utilisateur${NC} [Admin]: ")" _USERNAME
 USERNAME="${_USERNAME:-Admin}"
 
 # Timezone
+<<<<<<< HEAD
+=======
 _TIMEZONE=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Fuseau horaire${NC} [Europe/Paris]: ")" _TIMEZONE
 TIMEZONE="${_TIMEZONE:-Europe/Paris}"
 
 # Locale
+<<<<<<< HEAD
+=======
 _LOCALE=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Locale${NC} [fr_FR.UTF-8]: ")" _LOCALE
 LOCALE="${_LOCALE:-fr_FR.UTF-8}"
 
 # Keymap
+<<<<<<< HEAD
+=======
 _KEYMAP=""
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 read -rp "$(echo -e "${YELLOW}Clavier console${NC} [fr]: ")" _KEYMAP
 KEYMAP="${_KEYMAP:-fr}"
 
@@ -425,6 +443,8 @@ sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3600/' /etc/default/grub
 sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=0/' /etc/default/grub
 sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/' /etc/default/grub
 sed -i 's/^#?GRUB_GFXMODE=.*/GRUB_GFXMODE=1920x1080x32/' /etc/default/grub
+<<<<<<< HEAD
+=======
 info "Génération de la configuration GRUB..."
 grub-mkconfig -o /boot/grub/grub.cfg
 success "GRUB installé et configuré"
@@ -900,6 +920,7 @@ sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3600/' /etc/default/grub
 sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=0/' /etc/default/grub
 sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/' /etc/default/grub
 sed -i 's/^#?GRUB_GFXMODE=.*/GRUB_GFXMODE=1920x1080x32/' /etc/default/grub
+>>>>>>> e3fb85dba94095a6fc272673b07c1fc5d495cc79
 info "Génération de la configuration GRUB..."
 grub-mkconfig -o /boot/grub/grub.cfg
 success "GRUB installé et configuré"
