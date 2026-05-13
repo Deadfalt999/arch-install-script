@@ -273,7 +273,9 @@ while IFS= read -r _dline; do
     [[ "$_tag" == "$_FIRST_DISK" ]] && _status="on"
 
     _DISK_CHECKLIST_ARGS+=( "$_tag" "$_desc" "$_status" )
-done < <(lsblk -d -n -o NAME,SIZE,TRAN,MODEL 2>/dev/null | awk '$0!="" && $1!~/^loop/ && $1!~/^sr[0-9]/')
+done < <(lsblk -d -n -o NAME,SIZE,TRAN,MODEL 2>/dev/null \
+    | grep -Ev '^(loop|sr)[0-9]' \
+    | awk '$0!=""')
 
 # Afficher le checklist — une seule sélection attendue
 _DISK_RAW=$(d_checklist "Disque cible" \
