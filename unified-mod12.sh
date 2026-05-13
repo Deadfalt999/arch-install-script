@@ -561,10 +561,17 @@ success "Partitions montées"
 # ══════════════════════════════════════════════════════════
 banner "MIROIRS"
 info "Sélection du miroir le plus rapide (France)..."
-reflector --country France --age 12 --protocol https --sort rate \
-    --timeout 5 --latest 20 \
+
+
+reflector --country France,Germany,Netherlands \
+    --age 6 \
+    --protocol https \
+    --sort score \
+    --fastest 5 \
+    --download-timeout 30 \
     --save /etc/pacman.d/mirrorlist &>/dev/null \
     || warn "reflector échoué — miroirs par défaut conservés"
+
 SELECTED_MIRROR=$(grep "^Server" /etc/pacman.d/mirrorlist 2>/dev/null | head -1 | sed 's/Server = //') || true
 SELECTED_MIRROR="${SELECTED_MIRROR:-miroir par défaut}"
 success "Miroir : ${SELECTED_MIRROR}"
