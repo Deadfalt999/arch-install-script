@@ -579,7 +579,7 @@ d_run_gauge 50 "Montage" "Montage des partitions..." bash -c "
 # ── Miroirs ───────────────────────────────────────────────
 d_run_gauge 60 "Miroirs" "Sélection des miroirs (France, HTTPS, triés par vitesse)..." \
     reflector --country France --age 12 --protocol https --sort rate \
-              --timeout 5 --latest 20 \
+              --connection-timeout 5 --latest 20 \
               --save /etc/pacman.d/mirrorlist
 
 # ── pacstrap ─────────────────────────────────────────────
